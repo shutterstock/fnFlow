@@ -1,15 +1,24 @@
 {
   "name": "fnFlow",
-  "version": "0.0.1",
-  "author": "David Fenster <david@dfenster.com>",
   "description": "Pronounced \"effin' flow\" because it's so badass, fnFlow is a Javascript control flow library heavily influenced by Caolan McMahon's async that encourages a proper functional design pattern.",
-  "scripts": {
-    "test": "nodeunit tests",
-  },
   "main": "./lib/fnFlow",
+  "author": "David Fenster <david@dfenster.com>",
+  "version": "0.0.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/dfenster/fnFlow.git"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/dfenster/fnFlow/raw/master/LICENSE"
+    }
+  ],
+  "dependencies" : {
+    "async":  "0.2.6"
+  },
+  "devDependencies": {
+    "nodeunit":  ">0.0.0"
   },
   "keywords": [
     "control flow",
@@ -19,16 +28,15 @@
     "async",
     "auto"
   ],
-  "dependencies" : {
-    "async"   :  "0.2.6"
+  "jam": {
+    "main": "lib/fnFlow.js",
+    "include": [
+      "lib/fnFlow.js",
+      "README.md",
+      "LICENSE"
+    ]
   },
-  "devDependencies": {
-    "nodeunit":  ">0.0.0"
-  },
-  "licenses" : [
-    {
-      "type" : "MIT",
-      "url" : "https://github.com/dfenster/fnFlow/raw/master/LICENSE"
-    }
-  ]
+  "scripts": {
+    "test": "nodeunit tests",
+  }
 }
