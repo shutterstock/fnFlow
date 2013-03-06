@@ -15,7 +15,8 @@
     }
   ],
   "dependencies" : {
-    "async":  "0.2.6"
+    "async":  "0.2.6",
+    "underscore": "1.4.4"
   },
   "devDependencies": {
     "nodeunit":  ">0.0.0"
@@ -37,6 +38,6 @@
     ]
   },
   "scripts": {
-    "test": "nodeunit tests",
+    "test": "nodeunit tests"
   }
 }
