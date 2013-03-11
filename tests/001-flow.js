@@ -108,27 +108,23 @@ Book.all = {
 
 
 module.exports["flow data"] = function(test){
-  var data = {
-    bookId: 1
-  }
-
   flow({
+    bookId: 1
+  }, {
     getBook: [Book.getById, 'bookId']
-  }, data, function(err, results){
+  }, function(err, results){
     test.equals(results.getBook, Book.all[1]);
     test.done();
   });
 }
 
 module.exports["flow functions and data"] = function(test){
-  var data = {
-    authorId: 5
-  }
-
   flow({
+    authorId: 5
+  }, {
     getAuthor: [Author.getById, 'authorId'],
     getBooks: [Book.findByAuthorId, 'getAuthor']
-  }, data, function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorId: 5,
@@ -140,16 +136,14 @@ module.exports["flow functions and data"] = function(test){
 }
 
 module.exports["parallel flow functions and data"] = function(test){
-  var data = {
+  flow({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  }
-
-  flow({
+  }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     getBooks: [Book.findByGenreAndAuthor, 'getGenre', 'getAuthor']
-  }, data, function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -163,16 +157,14 @@ module.exports["parallel flow functions and data"] = function(test){
 }
 
 module.exports["flow task error"] = function(test){
-  var data = {
+  flow({
     authorName: 'Dan Brown',
     genreName: '???'
-  }
-
-  flow({
+  }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     getBooks: [Book.findByGenreAndAuthor, 'getGenre', 'getAuthor']
-  }, data, function(err, results){
+  }, function(err, results){
     test.ok(err);
     test.equals(err.message, "this was a test");
     test.done();
@@ -180,16 +172,14 @@ module.exports["flow task error"] = function(test){
 }
 
 module.exports["instance task execution"] = function(test){
-  var data = {
+  flow({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  }
-
-  flow({
+  }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     getBooks: ['getGenre', 'findBooksByAuthor', 'getAuthor']
-  }, data, function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -203,17 +193,15 @@ module.exports["instance task execution"] = function(test){
 }
 
 module.exports["prerequisite task execution"] = function(test){
-  var data = {
+  flow({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  }
-
-  flow({
+  }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
     getBooks: ['assertGenreExistence', Book.findByGenreAndAuthor, 'getGenre', 'getAuthor']
-  }, data, function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -228,17 +216,15 @@ module.exports["prerequisite task execution"] = function(test){
 }
 
 module.exports["prerequisite task execution with short circuit error"] = function(test){
-  var data = {
+  flow({
     authorName: 'Dan Brown',
     genreName: 'Yourmom'
-  }
-
-  flow({
+  }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
     getBooks: ['assertGenreExistence', Book.findByGenreAndAuthor, 'getGenre', 'getAuthor']
-  }, data, function(err, results){
+  }, function(err, results){
     test.ok(err);
     test.equals(err.message, "Genre did not exist");
     test.deepEqual(results, {
@@ -254,17 +240,15 @@ module.exports["prerequisite task execution with short circuit error"] = functio
 
 
 module.exports["prerequisite instance task execution"] = function(test){
-  var data = {
+  flow({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  }
-
-  flow({
+  }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
     getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
-  }, data, function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -280,17 +264,15 @@ module.exports["prerequisite instance task execution"] = function(test){
 
 
 module.exports["prerequisite instance task execution with short circuit error"] = function(test){
-  var data = {
+  flow({
     authorName: 'Dan Brown',
     genreName: 'Yourmom'
-  }
-
-  flow({
+  }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
     getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
-  }, data, function(err, results){
+  }, function(err, results){
     test.ok(err);
     test.equals(err.message, "Genre did not exist");
     test.deepEqual(results, {
