@@ -29,13 +29,19 @@ BaseClass.findByAttribute = function(attribute, value, cb){
   return cb(null, results);
 }
 BaseClass.getById = function(id, cb){
+  console.log('getById', arguments)
   id = id && id.id || id;
   return cb(null, this.all[id]);
 }
+BaseClass.assertExistence = function(object, cb){
+  if(!object) return cb(new Error(this.name + " did not exist"));
+  return cb(null, true);
+};
 
 Genre = us.extend(function Genre(){}, BaseClass);
 util.inherits(Genre, BaseClass);
 Genre.getByName = function(name, cb){ return this.getByAttribute('name', name, cb); };
+Genre.prototype.findBooksByAuthor = function(author, cb) { return Book.findByGenreAndAuthor(this, author, cb); }
 bindFunctions(Genre);
 
 Author = us.extend(function Author(){}, BaseClass);
@@ -156,7 +162,7 @@ module.exports["parallel flow functions and data"] = function(test){
   });
 }
 
-module.exports["flow error"] = function(test){
+module.exports["flow task error"] = function(test){
   var data = {
     authorName: 'Dan Brown',
     genreName: '???'
@@ -173,11 +179,129 @@ module.exports["flow error"] = function(test){
   });
 }
 
+module.exports["instance task execution"] = function(test){
+  var data = {
+    authorName: 'Dan Brown',
+    genreName: 'Fiction'
+  }
+
+  flow({
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooks: ['getGenre', 'findBooksByAuthor', 'getAuthor']
+  }, data, function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, {
+      authorName: 'Dan Brown',
+      genreName: 'Fiction',
+      getAuthor: Author.all[4],
+      getGenre: Genre.all[3],
+      getBooks: [Book.all[6]]
+    });
+    test.done();
+  });  
+}
+
+module.exports["prerequisite task execution"] = function(test){
+  var data = {
+    authorName: 'Dan Brown',
+    genreName: 'Fiction'
+  }
+
+  flow({
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooks: ['assertGenreExistence', Book.findByGenreAndAuthor, 'getGenre', 'getAuthor']
+  }, data, function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, {
+      authorName: 'Dan Brown',
+      genreName: 'Fiction',
+      getAuthor: Author.all[4],
+      getGenre: Genre.all[3],
+      assertGenreExistence: true,
+      getBooks: [Book.all[6]]
+    });
+    test.done();
+  });
+}
+
+module.exports["prerequisite task execution with short circuit error"] = function(test){
+  var data = {
+    authorName: 'Dan Brown',
+    genreName: 'Yourmom'
+  }
+
+  flow({
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooks: ['assertGenreExistence', Book.findByGenreAndAuthor, 'getGenre', 'getAuthor']
+  }, data, function(err, results){
+    test.ok(err);
+    test.equals(err.message, "Genre did not exist");
+    test.deepEqual(results, {
+      authorName: 'Dan Brown',
+      genreName: 'Yourmom',
+      getAuthor: Author.all[4],
+      getGenre: undefined,
+      assertGenreExistence: undefined
+    });
+    test.done();
+  });
+}
 
 
+module.exports["prerequisite instance task execution"] = function(test){
+  var data = {
+    authorName: 'Dan Brown',
+    genreName: 'Fiction'
+  }
+
+  flow({
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+  }, data, function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, {
+      authorName: 'Dan Brown',
+      genreName: 'Fiction',
+      getAuthor: Author.all[4],
+      getGenre: Genre.all[3],
+      assertGenreExistence: true,
+      getBooks: [Book.all[6]]
+    });
+    test.done();
+  });  
+}
 
 
+module.exports["prerequisite instance task execution with short circuit error"] = function(test){
+  var data = {
+    authorName: 'Dan Brown',
+    genreName: 'Yourmom'
+  }
 
-
+  flow({
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+  }, data, function(err, results){
+    test.ok(err);
+    test.equals(err.message, "Genre did not exist");
+    test.deepEqual(results, {
+      authorName: 'Dan Brown',
+      genreName: 'Yourmom',
+      getAuthor: Author.all[4],
+      getGenre: undefined,
+      assertGenreExistence: undefined
+    });
+    test.done();
+  });
+}
 
 
