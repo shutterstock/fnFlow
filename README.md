@@ -90,6 +90,7 @@ Which translates to the following workflow:
 * Get the author by name "Brandon Sanderson", and get the genre by name "Fantasy" in parallel.
 * Right after getting the genre, assert that the genre exists and interrupt the workflow if it doesn't.
 * Get the fantasy books written by Brandon Sanderson by calling genre.findBooksByAuthor(author, callback)
+* Print the error if there was one, and log the number of books retrieved if not.
 
 
 
