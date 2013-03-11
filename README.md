@@ -14,6 +14,9 @@ the functions pass an error to their callback, that function will not complete
 will be called immediately with the error. The callback receives an object
 containing the results of functions which have completed so far.
 
+For a complicated series of async tasks, using the flow function makes adding
+new tasks much easier and makes the code more readable.  It also encourages  you to define functions in places where they can be reused more easily.  This makes it an excellent choice for design patterns like MVC where it is a goal to strive for "fat model, skinny controller."
+
 Note, all functions are assumed to expect a callback as the final argument, so it is unsafe to pass functions in the tasks object which cannot handle the
 extra argument. For example, this snippet of code:
 
@@ -33,7 +36,7 @@ __Arguments__
 __Example__
 
 ```js
-flow({
+fnFlow.flow({
   authorName: 'Brandon Sanderson',
   genreName: 'Fantasy',
   bookSeriesName: 'The Wheel of Time'
@@ -46,7 +49,7 @@ flow({
 ```
 Which translates to the following workflow:
 * Get the author by name "Brandon Sanderson", get the genre by name "Fantasy", and get the book series by name "The Wheel of Time" in parallel.
-* Get the fantasy books in the Wheel of Time series written by Dan Brown by calling Book.findBooksByAuthorGenreAndBookSeries(author, genre, bookSeries, callback)
+* Get the fantasy books in the Wheel of Time series written by Brandon Sanderson by calling Book.findBooksByAuthorGenreAndBookSeries(author, genre, bookSeries, callback)
 
 To do this using async.auto would look like this:
 
@@ -67,6 +70,28 @@ async.auto({
 });
 ```
 
-For a complicated series of async tasks, using the flow function makes adding
-new tasks much easier and makes the code more readable.  It also encourages  you to define functions on places where they can be reused more easily.  This makes it an excellent choice for design patterns like MVC where it is a goal to strive for "fat model, skinny controller."
+__Another Example__
+
+```js
+fnFlow.flow({
+  authorName: 'Brandon Sanderson',
+  genreName: 'Fantasy'
+}, {
+  getAuthor: [Author.getByName, 'authorName'],
+  getGenre: [Genre.getByName, 'genreName'],
+  assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+  getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+}, function(err, results) {
+  if(err) return console.error(err);  //genre probably didn't exist.
+  console.log('Number of books:', results.getBooks.length);
+});
+```
+Which translates to the following workflow:
+* Get the author by name "Brandon Sanderson", and get the genre by name "Fantasy" in parallel.
+* Right after getting the genre, assert that the genre exists and interrupt the workflow if it doesn't.
+* Get the fantasy books written by Brandon Sanderson by calling genre.findBooksByAuthor(author, callback)
+
+
+
+
 
