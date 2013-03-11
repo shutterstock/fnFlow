@@ -7,18 +7,18 @@ Pronounced "effin' flow" because it's so badass, fnFlow is a Javascript control 
 
 Like [async.auto](https://github.com/caolan/async#auto), it determines the best order for running functions based on their requirements.
 
+For a complicated series of async tasks, using the flow function makes adding
+new tasks much easier and makes the code more readable.  It also encourages  you to define functions in places where they can be reused more easily.  This makes it an excellent choice for design patterns like MVC where it is a goal to strive for "fat model, skinny controller."
+
 Each function can optionally depend on other functions being completed first,
 and each function is run as soon as its requirements are satisfied. If any of
 the functions pass an error to their callback, that function will not complete
 (so any other functions depending on it will not run) and the main callback
-will be called immediately with the error. The callback receives an object
+will be called immediately with the error. The main callback receives an object
 containing the results of functions which have completed so far.
 
-For a complicated series of async tasks, using the flow function makes adding
-new tasks much easier and makes the code more readable.  It also encourages  you to define functions in places where they can be reused more easily.  This makes it an excellent choice for design patterns like MVC where it is a goal to strive for "fat model, skinny controller."
-
 Note, all functions are assumed to expect a callback as the final argument, so it is unsafe to pass functions in the tasks object which cannot handle the
-extra argument. For example, this snippet of code:
+extra argument. 
 
 
 __Arguments__
