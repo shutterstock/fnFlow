@@ -46,7 +46,7 @@ flow({
 ```
 Which translates to the following workflow:
 * Get the author by name "Brandon Sanderson", get the genre by name "Fantasy", and get the book series by name "The Wheel of Time" in parallel.
-* Get the fantasy books in the Wheel of Time series written by Dan Brown.  By calling Book.findBooksByAuthorGenreAndBookSeries(author, genre, bookSeries, callback)
+* Get the fantasy books in the Wheel of Time series written by Dan Brown by calling Book.findBooksByAuthorGenreAndBookSeries(author, genre, bookSeries, callback)
 
 To do this using async.auto would look like this:
 
