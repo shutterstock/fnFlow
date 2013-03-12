@@ -23,9 +23,8 @@ extra argument.
 
 __Arguments__
 
-* data - An optional object literal containing a set of static data.  The key used for each data value is used when specifying parameters in tasks.  If data is an array, multiple operations will be run in parallel, and the callback will be passed an array or results.
-* tasks - An object literal containing named functions or named arrays of
-  parameters or requirements, with the function itself somewhere in the array.  Specify requirements to the left of the function and parameters to the right. The key used for each function or array is used when specifying parameters or requirements to other tasks. When called, the task function receives the results of the named parameters as arguments as well as a final callback(err, result) argument which must be called when finished, passing an error (which can be null) and the result of the function's execution.  The task function may optionally be the name of a function to perform on the result of the last named requirement (the item directly to the left).
+* data - Either an object literal containing a set of static data, or an array of such objects.  The key used for each data value is used when specifying parameters in tasks.  If an array is passed, a set of tasks for each object in the array will occur in parallel, and the callback will be passed an array or results.
+* tasks - An object literal containing named functions or named arrays of parameters or requirements, with the function itself somewhere in the array.  Specify requirements to the left of the function and parameters to the right. The key used for each function or array is used when specifying parameters or requirements to other tasks. When called, the task function receives the results of the named parameters as arguments as well as a final callback(err, result) argument which must be called when finished, passing an error (which can be null) and the result of the function's execution.  The task function may optionally be the name of a function to perform on the result of the last named requirement (the item directly to the left).
 * callback(err, results) - An optional callback which is called when all the
   tasks have been completed. The callback will receive an error as an argument
   if any tasks pass an error to their callback. Results will always be passed
