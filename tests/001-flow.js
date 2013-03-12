@@ -214,6 +214,7 @@ module.exports["prerequisite task execution"] = function(test){
   });
 }
 
+
 module.exports["prerequisite task execution with short circuit error"] = function(test){
   flow({
     authorName: 'Dan Brown',
@@ -286,3 +287,123 @@ module.exports["prerequisite instance task execution with short circuit error"] 
 }
 
 
+module.exports["multiple asyncronus tasks with prerequisite task execution"] = function(test){
+  flow( [
+    { authorName: 'Dan Brown',
+      genreName: 'Fiction'
+    },
+    { authorName: 'Patricia Briggs',
+      genreName: 'Fantasy'
+    }
+  ], {
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooks: ['assertGenreExistence', Book.findByGenreAndAuthor, 'getGenre', 'getAuthor']
+  }, function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, [
+      { authorName: 'Dan Brown',
+        genreName: 'Fiction',
+        getAuthor: { id: 4, name: 'Dan Brown' },
+        getGenre: { id: 3, name: 'Fiction' },
+        assertGenreExistence: true,
+        getBooks: [ { id: 6, title: 'Inferno', authorId: 4, genreId: 3 } ] },
+      { authorName: 'Patricia Briggs',
+        genreName: 'Fantasy',
+        getAuthor: { id: 1, name: 'Patricia Briggs' },
+        getGenre: { id: 1, name: 'Fantasy' },
+        assertGenreExistence: true,
+        getBooks: [] }]
+    );
+    test.done();
+  });
+}
+
+module.exports["multiple asyncronus tasks with prerequisite task execution (error)"] = function(test){
+  flow([
+      { authorName: 'Dan Brown',
+        genreName: 'Fiction'
+      },
+      { authorName: 'Patricia Briggs',
+        genreName: 'Robot Romance Novels'
+      }
+  ], {
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooks: ['assertGenreExistence', Book.findByGenreAndAuthor, 'getGenre', 'getAuthor']
+  }, function(err, results){
+    test.ok(err);
+    test.equal(results[0], undefined);
+    test.deepEqual(results[1], { 
+      authorName: 'Patricia Briggs',
+      genreName: 'Robot Romance Novels',
+      getAuthor: { id: 1, name: 'Patricia Briggs' },
+      getGenre: undefined,
+      assertGenreExistence: undefined
+    });
+    test.done();
+  });
+}
+
+module.exports["multiple asyncronus tasks with prerequisite instance task execution"] = function(test){
+  flow([
+    { authorName: 'Dan Brown',
+      genreName: 'Fiction'
+    },
+    { authorName: 'Patricia Briggs',
+      genreName: 'Fantasy'
+    }
+  ], {
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+  }, function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, [
+      { authorName: 'Dan Brown',
+        genreName: 'Fiction',
+        getAuthor: { id: 4, name: 'Dan Brown' },
+        getGenre: { id: 3, name: 'Fiction' },
+        assertGenreExistence: true,
+        getBooks: [ { id: 6, title: 'Inferno', authorId: 4, genreId: 3 } ] },
+      { authorName: 'Patricia Briggs',
+        genreName: 'Fantasy',
+        getAuthor: { id: 1, name: 'Patricia Briggs' },
+        getGenre: { id: 1, name: 'Fantasy' },
+        assertGenreExistence: true,
+        getBooks: [] } 
+    ]);
+    test.done();
+  });  
+}
+
+
+module.exports["multiple asyncronus tasks with prerequisite instance task execution (error)"] = function(test){
+  flow([
+    { authorName: 'Dan Brown',
+      genreName: 'Fiction'
+    },
+    { authorName: 'Patricia Briggs',
+      genreName: 'Robot Romance Novels'
+    }
+  ], {
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+  }, function(err, results){
+    test.ok(err);
+    test.equal(results[0], undefined);
+    test.deepEqual(results[1], { 
+      authorName: 'Patricia Briggs',
+      genreName: 'Robot Romance Novels',
+      getAuthor: { id: 1, name: 'Patricia Briggs' },
+      getGenre: undefined,
+      assertGenreExistence: undefined
+    });
+    test.done();
+  });  
+}
