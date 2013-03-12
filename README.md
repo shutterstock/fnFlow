@@ -97,12 +97,10 @@ __Running Multple Sets of Tasks in Parallel__
 
 ```js
 fnFlow.flow([
-  {
-    authorName: 'Brandon Sanderson',
+  { authorName: 'Brandon Sanderson',
     genreName: 'Fantasy'
   },
-  {
-    authorName: 'Jack Vance',
+  { authorName: 'Jack Vance',
     genreName: 'Fantasy'
   }
 ], {
