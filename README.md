@@ -95,7 +95,7 @@ Which translates to the following workflow:
 
 ## Authors
 
-This library was developed by David Chester and Zubin Tiku at [Shutterstock](http://www.shutterstock.com)
+This library was developed by David Fenster at [Shutterstock](http://www.shutterstock.com)
 
 
 ## License
