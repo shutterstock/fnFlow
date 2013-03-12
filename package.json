@@ -1,5 +1,5 @@
 {
-  "name": "fnFlow",
+  "name": "fnflow",
   "description": "Pronounced \"effin' flow\" because it's so badass, fnFlow is a Javascript control flow library heavily influenced by Caolan McMahon's async that encourages a proper functional design pattern.",
   "main": "./lib/fnFlow",
   "author": "David Fenster <david@dfenster.com>",
