@@ -29,7 +29,6 @@ BaseClass.findByAttribute = function(attribute, value, cb){
   return cb(null, results);
 }
 BaseClass.getById = function(id, cb){
-  console.log('getById', arguments)
   id = id && id.id || id;
   return cb(null, this.all[id]);
 }
