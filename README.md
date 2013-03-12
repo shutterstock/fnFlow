@@ -23,7 +23,7 @@ extra argument.
 
 __Arguments__
 
-* data - An optional object literal containing a set of static data.  The key used for each data value is used when specifying parameters in tasks.
+* data - An optional object literal containing a set of static data.  The key used for each data value is used when specifying parameters in tasks.  If data is an array, multiple operations will be run in parallel, and the callback will be passed an array or results.
 * tasks - An object literal containing named functions or named arrays of
   parameters or requirements, with the function itself somewhere in the array.  Specify requirements to the left of the function and parameters to the right. The key used for each function or array is used when specifying parameters or requirements to other tasks. When called, the task function receives the results of the named parameters as arguments as well as a final callback(err, result) argument which must be called when finished, passing an error (which can be null) and the result of the function's execution.  The task function may optionally be the name of a function to perform on the result of the last named requirement (the item directly to the left).
 * callback(err, results) - An optional callback which is called when all the
@@ -83,7 +83,7 @@ fnFlow.flow({
   getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
 }, function(err, results) {
   if(err) return console.error(err);  //genre probably didn't exist.
-  console.log('Number of books:', results.getBooks.length);
+  console.log('Number of books for ' + result.getAutor.name  + ':', results.getBooks.length);
 });
 ```
 Which translates to the following workflow:
@@ -92,6 +92,32 @@ Which translates to the following workflow:
 * Get the fantasy books written by Brandon Sanderson by calling genre.findBooksByAuthor(author, callback)
 * Print the error if there was one, and log the number of books retrieved if not.
 
+
+__Running Multple Sets of Tasks in Parallel__
+
+```js
+fnFlow.flow([
+  {
+    authorName: 'Brandon Sanderson',
+    genreName: 'Fantasy'
+  },
+  {
+    authorName: 'Jack Vance',
+    genreName: 'Fantasy'
+  }
+], {
+  getAuthor: [Author.getByName, 'authorName'],
+  getGenre: [Genre.getByName, 'genreName'],
+  assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+  getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+}, function(err, results) {
+  if(err) return console.error(err);  //genre probably didn't exist.
+  results.forEach(function (result) {
+	  console.log('Number of books:', results.getBooks.length);
+  });
+});
+```
+This does the exact same thing as the above example, but does it once for Brandon Sanderson and once for Jack Vance, in parallel.
 
 ## Authors
 
