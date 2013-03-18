@@ -17,6 +17,7 @@ var bindFunctions = function(C){
 }
 
 BaseClass = function BaseClass(){};
+BaseClass.getAll = function(cb){ return cb(null, this.all); }
 BaseClass.getByAttribute = function(attribute, value, cb){
   var self = this;
   var o = self.all[us.find(Object.keys(self.all), function(id){ return self.all[id][attribute] == value; })];
@@ -41,11 +42,14 @@ Genre = us.extend(function Genre(){}, BaseClass);
 util.inherits(Genre, BaseClass);
 Genre.getByName = function(name, cb){ return this.getByAttribute('name', name, cb); };
 Genre.prototype.findBooksByAuthor = function(author, cb) { return Book.findByGenreAndAuthor(this, author, cb); }
+Genre.prototype.getBooks = function(cb){ return Book.findByGenreId(this.id, cb); }
+Genre.prototype.getGenre = function(cb){ return cb(null, this.id); }
 bindFunctions(Genre);
 
 Author = us.extend(function Author(){}, BaseClass);
 util.inherits(Author, BaseClass);
 Author.getByName = function(name, cb){ return this.getByAttribute('name', name, cb); };
+Author.prototype.getBooks = function(cb){ return Book.findByAuthorId(this.id, cb); };
 bindFunctions(Author);
 
 BookSeries = us.extend(function BookSeries(){}, BaseClass);
@@ -66,6 +70,7 @@ Book.findByGenreAndAuthor = function(genreId, authorId, cb){
   if(genreId == 5) return cb(new Error("this was a test"));
   cb(null, us.where(Book.all, {genreId: genreId, authorId: authorId})); 
 };
+Book.prototype.getAuthor = function(cb){ return Author.getById(this.author_id, cb); }
 bindFunctions(Book);
 
 Genre.all = {
@@ -155,7 +160,20 @@ module.exports["parallel flow functions and data"] = function(test){
   });
 }
 
-module.exports["flow task error"] = function(test){
+module.exports["function as task"] = function(test){
+  flow({
+  }, {
+    getAuthors: Author.getAll
+  }, function(err, results){
+    test.ok(!err, "no error");
+    test.deepEqual(results, {
+      getAuthors: Author.all
+    }, 'results match');
+    test.done();
+  });
+}
+
+module.exports["flow task callback with error"] = function(test){
   flow({
     authorName: 'Dan Brown',
     genreName: '???'
@@ -406,4 +424,234 @@ module.exports["multiple asyncronus tasks with prerequisite instance task execut
     });
     test.done();
   });  
+}
+
+
+
+module.exports["task name same as instance method"] = function(test){
+  flow({
+    genreName: 'Fantasy'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooks: ['getGenre', 'getBooks']
+  }, function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, {
+      genreName: 'Fantasy',
+      getGenre: Genre.all[1],
+      getBooks: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]]
+    });
+    test.done();
+  });
+}
+
+module.exports["different task name same as instance method"] = function(test){
+  try {
+    flow({
+      genreName: 'Fantasy'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      getBooksByGenre: ['getGenre', 'getBooks'],
+      getBooks: ['getBooksByGenre', Book.findByGenreId, 'getGenre']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getBooksByGenre': Function required.", "error message match")
+    test.done();
+  }
+}
+
+
+module.exports["undefined instance error"] = function(test){
+  try {
+    flow({
+      genreName: 'Fictiony'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      getBooks: ['getGenre', 'getBooks']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getBooks': Cannot call function 'getBooks' on undefined", "error message match")
+    test.done();
+  }
+}
+
+module.exports["multiple functions error"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, Book.getById, 'bookId']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getBook': More than one function specified (at index 0 and 1).", "error message match")
+    test.done();
+  }
+}
+
+module.exports["multiple instance functions error"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, 'bookId'],
+      getBookAuthor: ['getBook', 'getAuthor', 'getAuthor']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getBookAuthor': More than one function specified (at index 1 and 2).", "error message match")
+    test.done();
+  }
+}
+
+module.exports["unknown symbol error"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, 'bookId'],
+      getAuthor: ['getBook', 'notafunction']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getAuthor': Unknown symbol 'notafunction' must be either the name of a task, the name of data, or the name of a function on 'getBook'", "error message match")
+    test.done();
+  }
+}
+
+module.exports["unknown symbol for first task argument"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, 'bookId'],
+      getAuthor: ['notafunction']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, 'FlowTaskError')
+    test.equals(e.message, "Flow error in 'getAuthor': Unknown symbol at index '0' must be either the name of a task, the name of data, or be the name of a function on the result of a task or data", "error message match")
+    test.done();
+  }
+}
+
+module.exports["undefined task argument error"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, 'bookId'],
+      getAuthor: [Book.getAuthorByBookId, 'getBook']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getAuthor': Unknown symbol at index '0' must be either the name of a task, the name of data, or be the name of a function on the result of a task or data", "error message match")
+    test.done();
+  }
+}
+
+module.exports["missing task args error"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, 'bookId'],
+      getAuthor: []
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getAuthor': Function required.", "error message match")
+    test.done();
+  }
+}
+
+
+module.exports["missing function in task args error"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, 'bookId'],
+      getAuthor: ['getBook']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getAuthor': Function required.", "error message match")
+    test.done();
+  }
+}
+
+module.exports["missing function in task args error"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, 'bookId'],
+      getAuthor: 'getBook'
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getAuthor': Invalid flow type. Must be function or array.", "error message match")
+    test.done();
+  }
+}
+
+module.exports["error in task function"] = function(test){
+  try {
+    flow({
+      bookId: 1
+    }, {
+      getBook: [Book.getById, 'bookId'],
+      getAuthor: [Author.getById]
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getAuthor': Error during execution of function.", "error message match")
+    test.ok(/TypeError: undefined is not a function/.test(e.stack))
+    test.done();
+  }
 }
