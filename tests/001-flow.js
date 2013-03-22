@@ -70,7 +70,7 @@ Book.findByGenreAndAuthor = function(genreId, authorId, cb){
   if(genreId == 5) return cb(new Error("this was a test"));
   cb(null, us.where(Book.all, {genreId: genreId, authorId: authorId})); 
 };
-Book.prototype.getAuthor = function(cb){ return Author.getById(this.author_id, cb); }
+Book.prototype.getAuthor = function(cb){ return Author.getById(this.authorId, cb); }
 bindFunctions(Book);
 
 Genre.all = {
@@ -631,7 +631,7 @@ module.exports["missing function in task args error"] = function(test){
   } catch(e) {
     test.ok(e, 'got an error'); 
     test.equals(e.name, "FlowTaskError", "got FlowTaskError");
-    test.equals(e.message, "Flow error in 'getAuthor': Invalid flow type. Must be function or array.", "error message match")
+    test.equals(e.message, "Flow error in 'getAuthor': Invalid flow type. Must be function, or array.", "error message match")
     test.done();
   }
 }
@@ -655,3 +655,171 @@ module.exports["error in task function"] = function(test){
     test.done();
   }
 }
+
+
+
+module.exports["array result data execution"] = function(test){
+  flow({ 
+    genreName: 'Fantasy'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooksByGenre: ['getGenre', 'getBooks'],
+    getAuthors: ['getBooksByGenre', {
+      getBookAuthor: ['getBooksByGenre', 'getAuthor']
+    }]
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      getGenre: Genre.all[1],
+      getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getAuthors: [{
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }]
+    });
+    test.done();
+  });  
+}
+
+
+module.exports["array result data execution with context"] = function(test){
+  flow({ 
+    genreName: 'Fantasy'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooksByGenre: ['getGenre', 'getBooks'],
+    getAuthors: ['getBooksByGenre', {
+      getBookAuthor: [Author.getById, 'authorId']
+    }]
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      getGenre: Genre.all[1],
+      getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getAuthors: [{
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }]
+    });
+    test.done();
+  });  
+}
+
+
+module.exports["array result data execution using subFlow"] = function(test){
+  flow({ 
+    genreName: 'Fantasy'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooksByGenre: ['getGenre', 'getBooks'],
+    getAuthors: flow.subFlow('getBooksByGenre', {
+      getBookAuthor: ['getBooksByGenre', 'getAuthor']
+    })
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      getGenre: Genre.all[1],
+      getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getAuthors: [{
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }]
+    });
+    test.done();
+  });  
+}
+
+
+
+module.exports["array result data execution with prereqs using subFlow"] = function(test){
+  flow({ 
+    genreName: 'Fantasy',
+    authorName: 'Barbara Hambly'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooksByGenre: ['getGenre', 'getBooks'],
+    getAuthors: ['getBooksByGenre', {
+      getHambly2: [Author.getById, 'getHambly']
+    }],
+    getHambly: [Author.getByName, 'authorName']
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      getGenre: Genre.all[1],
+      getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getAuthors: [{
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }]
+    });
+    test.done();
+  });  
+}
+
+
+// module.exports["array result data execution"] = function(test){
+//   var authors, fantasyAuthors;
+//   fantasyAuthors = new FnFlow({
+//     genreName: 'Fantasy',
+//   })
+//     .addTask('getGenre', Genre.getByName, fantasyAuthors.data('genreName'));
+//     .addTask('getBooksByGenre', fantasyAuthors.task.getGenre, fantasyAuthors.task.getGenre.call('getBooks'));
+//     .addTask('getAuthors', (authors = new FnFlow(fantasyAuthors.task.getBooksByGenre))
+//       .addTask('getBookAuthor', authors.data.call('getAuthor'))
+//       .addTask('getBookAuthor', Author.getById, author.data('authorId'))
+//     )
+//   }, function(err, results){
+//     test.ok(!err, 'no error');
+//     test.deepEqual(results, { 
+//       genreName: 'Fantasy',
+//       getGenre: Genre.all[1],
+//       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+//       getAuthors: [{
+//         getBookAuthor: Author.all[6]
+//       }, {
+//         getBookAuthor: Author.all[6]
+//       }, {
+//         getBookAuthor: Author.all[5]
+//       }, {
+//         getBookAuthor: Author.all[5]
+//       }, {
+//         getBookAuthor: Author.all[5]
+//       }]
+//     });
+//     test.done();
+//   });  
+// }
+
+
