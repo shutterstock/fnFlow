@@ -770,18 +770,96 @@ module.exports["array result data execution with prereqs using subFlow"] = funct
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
+      authorName: 'Barbara Hambly',
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getHambly: Author.all[6],
       getAuthors: [{
-        getBookAuthor: Author.all[6]
+        getHambly2: Author.all[6]
       }, {
-        getBookAuthor: Author.all[6]
+        getHambly2: Author.all[6]
       }, {
-        getBookAuthor: Author.all[5]
+        getHambly2: Author.all[6]
       }, {
-        getBookAuthor: Author.all[5]
+        getHambly2: Author.all[6]
       }, {
-        getBookAuthor: Author.all[5]
+        getHambly2: Author.all[6]
+      }]
+    });
+    test.done();
+  });  
+}
+
+
+module.exports["two nested subflows with prereqs"] = function(test){
+  flow({ 
+    genreName: 'Fantasy',
+    authorName: 'Barbara Hambly'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooksByGenre: ['getGenre', 'getBooks'],
+    getAuthors: flow.subFlow('getBooksByGenre', {
+      getBookAuthor: ['getBooksByGenre', 'getAuthor'],
+      getBooksByAuthor: [Book.findByAuthorId, 'getBookAuthor'],
+      getManyHamblies: flow.subFlow('getBooksByAuthor', {
+        getHambly2: [Author.getById, 'getHambly']
+      })
+    }),
+    getHambly: [Author.getByName, 'authorName']    
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      authorName: 'Barbara Hambly',
+      getGenre: Genre.all[1],
+      getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getHambly: Author.all[6],
+      getAuthors: [{
+        getBookAuthor: Author.all[6],
+        getBooksByAuthor: [Book.all[7], Book.all[8]],
+        getManyHamblies: [{
+          getHambly2: Author.all[6]
+        }, {
+          getHambly2: Author.all[6]
+        }]
+      }, {
+        getBookAuthor: Author.all[6],
+        getBooksByAuthor: [Book.all[7], Book.all[8]],
+        getManyHamblies: [{
+          getHambly2: Author.all[6]
+        }, {
+          getHambly2: Author.all[6]
+        }]
+      }, {
+        getBookAuthor: Author.all[5],
+        getBooksByAuthor: [Book.all[9], Book.all[10], Book.all[11]],
+        getManyHamblies: [{
+          getHambly2: Author.all[6]
+        }, {
+          getHambly2: Author.all[6]
+        }, {
+          getHambly2: Author.all[6]
+        }]
+      }, {
+        getBookAuthor: Author.all[5],
+        getBooksByAuthor: [Book.all[9], Book.all[10], Book.all[11]],
+        getManyHamblies: [{
+          getHambly2: Author.all[6]
+        }, {
+          getHambly2: Author.all[6]
+        }, {
+          getHambly2: Author.all[6]
+        }]
+      }, {
+        getBookAuthor: Author.all[5],
+        getBooksByAuthor: [Book.all[9], Book.all[10], Book.all[11]],
+        getManyHamblies: [{
+          getHambly2: Author.all[6]
+        }, {
+          getHambly2: Author.all[6]
+        }, {
+          getHambly2: Author.all[6]
+        }]
       }]
     });
     test.done();
