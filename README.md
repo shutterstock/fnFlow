@@ -116,6 +116,14 @@ fnFlow.flow([
 ```
 This does the exact same thing as the above example, but does it once for Brandon Sanderson and once for Jack Vance, in parallel.
 
+
+### flow.subFlow(dataName, tasks)
+
+This function pairs with the original _flow_ function to execute a sub flow within a parent.  Given the name of a task or data from the parent flow,
+and a set of new tasks, it will execute the equivalent of one flow call from within another.  It is most handy when you must invoke operations on each
+item in an array of results from a previous task in the flow, though, it will work on a single result as well.
+
+
 ## Authors
 
 This library was developed by David Fenster at [Shutterstock](http://www.shutterstock.com)

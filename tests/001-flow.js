@@ -664,9 +664,9 @@ module.exports["array result data execution"] = function(test){
   }, {
     getGenre: [Genre.getByName, 'genreName'],
     getBooksByGenre: ['getGenre', 'getBooks'],
-    getAuthors: ['getBooksByGenre', {
+    getAuthors: flow.subFlow('getBooksByGenre', {
       getBookAuthor: ['getBooksByGenre', 'getAuthor']
-    }]
+    })
   }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
@@ -696,9 +696,9 @@ module.exports["array result data execution with context"] = function(test){
   }, {
     getGenre: [Genre.getByName, 'genreName'],
     getBooksByGenre: ['getGenre', 'getBooks'],
-    getAuthors: ['getBooksByGenre', {
+    getAuthors: flow.subFlow('getBooksByGenre', {
       getBookAuthor: [Author.getById, 'authorId']
-    }]
+    })
   }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
@@ -762,9 +762,9 @@ module.exports["array result data execution with prereqs using subFlow"] = funct
   }, {
     getGenre: [Genre.getByName, 'genreName'],
     getBooksByGenre: ['getGenre', 'getBooks'],
-    getAuthors: ['getBooksByGenre', {
+    getAuthors: flow.subFlow('getBooksByGenre', {
       getHambly2: [Author.getById, 'getHambly']
-    }],
+    }),
     getHambly: [Author.getByName, 'authorName']
   }, function(err, results){
     test.ok(!err, 'no error');
@@ -864,6 +864,244 @@ module.exports["two nested subflows with prereqs"] = function(test){
     });
     test.done();
   });  
+}
+
+
+module.exports["subflow with empty name"] = function(test){
+  try {
+    flow({ 
+      genreName: 'Fantasy'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      getBooksByGenre: ['getGenre', 'getBooks'],
+      getAuthors: flow.subFlow('', {
+        getBookAuthor: ['getBooksByGenre', 'getAuthor']
+      })
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "Error", "got Error");
+    test.equals(e.message, "SubFlow error: No data given for subFlow. Provide the name of a task or data from the parent flow.", "error message match")
+    test.done();    
+  }  
+}
+
+module.exports["subflow with no tasks"] = function(test){
+  try {
+    flow({ 
+      genreName: 'Fantasy'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      getBooksByGenre: ['getGenre', 'getBooks'],
+      getAuthors: flow.subFlow('getBooksByGenre', null)
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "Error", "got Error");
+    test.equals(e.message, "SubFlow error: No tasks given for subFlow.", "error message match")
+    test.done();    
+  }  
+}
+
+
+module.exports["subflow with bad data name"] = function(test){
+  try {
+    flow({ 
+      genreName: 'Fantasy'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      getBooksByGenre: ['getGenre', 'getBooks'],
+      getAuthors: flow.subFlow('asdf', {
+        getBookAuthor: ['getBooksByGenre', 'getAuthor']
+      })
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got Error");
+    test.equals(e.message, "Flow error in 'getAuthors': SubFlow data 'asdf' does not exist. Provide the name of a task or data from the parent flow.  Possible values include: getGenre, getBooksByGenre, genreName", "error message match")
+    test.done();    
+  }  
+}
+
+module.exports["subflow task with own data name"] = function(test){
+  try {
+    flow({ 
+      genreName: 'Fantasy'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      getBooksByGenre: ['getGenre', 'getBooks'],
+      getAuthors: flow.subFlow('getAuthors', {
+        getBookAuthor: ['getBooksByGenre', 'getAuthor']
+      })
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e) {
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got Error");
+    test.equals(e.message, "Flow error in 'getAuthors': SubFlow data 'getAuthors' does not exist. Provide the name of a task or data from the parent flow.  Possible values include: getGenre, getBooksByGenre, genreName", "error message match")
+    test.done();    
+  }  
+}
+
+
+module.exports["subflow with explicit prereq"] = function(test){
+  flow({ 
+    genreName: 'Fantasy'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+    getBooksByGenre: ['getGenre', 'getBooks'],
+    getAuthors: ['assertGenreExistence', flow.subFlow('getBooksByGenre', {
+      getBookAuthor: [Author.getById, 'authorId']
+    })]
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      assertGenreExistence: true,
+      getGenre: Genre.all[1],
+      getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getAuthors: [{
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }]
+    });
+    test.done();
+  });  
+}
+
+module.exports["subflow out of order"] = function(test){
+  try {
+    flow({ 
+      genreName: 'Fantasy'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+      getBooksByGenre: ['getGenre', 'getBooks'],
+      getAuthors: [flow.subFlow('getBooksByGenre', {
+        getBookAuthor: [Author.getById, 'authorId']
+      }), 'assertGenreExistence']
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });  
+  } catch(e){
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got Error");
+    test.equals(e.message, "Flow error in 'getAuthors': SubFlows must be the at the last index.", "error message match")
+    test.done();
+  }
+}
+
+
+module.exports["subflow in task array with bad data name"] = function(test){
+  try {
+    flow({ 
+      genreName: 'Fantasy'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+      getBooksByGenre: ['getGenre', 'getBooks'],
+      getAuthors: ['assertGenreExistence', flow.subFlow('asdf', {
+        getBookAuthor: [Author.getById, 'authorId']
+      })]
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });  
+  } catch(e){
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got Error");
+    test.equals(e.message, "Flow error in 'getAuthors': SubFlow data 'asdf' does not exist. Provide the name of a task or data from the parent flow.  Possible values include: getGenre, assertGenreExistence, getBooksByGenre, genreName", "error message match")
+    test.done();
+  }
+}
+
+
+module.exports["subflow in task array with own data name"] = function(test){
+  try {
+    flow({ 
+      genreName: 'Fantasy'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      assertGenreExistence: [Genre.assertExistence, 'getGenre'],
+      getBooksByGenre: ['getGenre', 'getBooks'],
+      getAuthors: ['assertGenreExistence', flow.subFlow('getAuthors', {
+        getBookAuthor: [Author.getById, 'authorId']
+      })]
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });  
+  } catch(e){
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got Error");
+    test.equals(e.message, "Flow error in 'getAuthors': SubFlow data 'getAuthors' does not exist. Provide the name of a task or data from the parent flow.  Possible values include: getGenre, assertGenreExistence, getBooksByGenre, genreName", "error message match")
+    test.done();
+  }
+}
+
+
+
+module.exports["single data subflow execution"] = function(test){
+  flow({ 
+    genreName: 'Fantasy'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooksByGenre: flow.subFlow('getGenre', {
+      getBooksByGenre: [Book.findByGenreId, 'id']
+    })
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      getGenre: Genre.all[1],
+      getBooksByGenre: {
+        getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]]
+      }
+    });
+    test.done();
+  });  
+}
+
+
+module.exports["single null data subflow execution"] = function(test){
+  try {
+    flow({ 
+      genreName: 'Chainsaw slashers'
+    }, {
+      getGenre: [Genre.getByName, 'genreName'],
+      getBooksByGenre: flow.subFlow('getGenre', {
+        getBooksByGenre2: [Book.findByGenreId, 'id']
+      })
+    }, function(err, results){
+      test.fail(null, null, "no error received");
+      test.done();
+    });
+  } catch(e){
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "FlowTaskError", "got Error");
+    test.equals(e.message, "Flow error in 'getBooksByGenre': Result of 'getGenre' returned no data. Could not start SubFlow.", "error message match")
+    test.done();
+  }
 }
 
 
