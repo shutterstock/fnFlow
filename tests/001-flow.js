@@ -467,21 +467,17 @@ module.exports["different task name same as instance method"] = function(test){
 
 
 module.exports["undefined instance error"] = function(test){
-  try {
-    flow({
-      genreName: 'Fictiony'
-    }, {
-      getGenre: [Genre.getByName, 'genreName'],
-      getBooks: ['getGenre', 'getBooks']
-    }, function(err, results){
-      test.fail(null, null, "no error received");
-    });
-  } catch(e) {
+  flow({
+    genreName: 'Fictiony'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooks: ['getGenre', 'getBooks']
+  }, function(e, results){
     test.ok(e, 'got an error'); 
-    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
-    test.equals(e.message, "Flow error in 'getBooks': Cannot call function 'getBooks' on undefined", "error message match")
+    test.equals(e.name, "FlowTaskArgumentNullError", "got FlowTaskError");
+    test.equals(e.message, "Flow error in 'getBooks': Cannot call function 'getBooks' on null/undefined 'getGenre'", "error message match")
     test.done();
-  }
+  });
 }
 
 module.exports["multiple functions error"] = function(test){
