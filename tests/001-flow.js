@@ -74,7 +74,7 @@ Book.prototype.getAuthor = function(cb){ return Author.getById(this.authorId, cb
 bindFunctions(Book);
 
 Genre.all = {
-  1: us.extend(new Genre(), {id: 1, name: "Fantasy"}),
+  1: us.extend(new Genre(), {id: 1, name: "Fantasy", book_ids: [7,8,9,10,11]}),
   2: us.extend(new Genre(), {id: 2, name: "Romance"}),
   3: us.extend(new Genre(), {id: 3, name: "Fiction"}),
   4: us.extend(new Genre(), {id: 4, name: "Sports"}),
@@ -304,6 +304,48 @@ module.exports["prerequisite instance task execution with short circuit error"] 
   });
 }
 
+module.exports["instance task execution with dot notation parameter"] = function(test){
+  flow({
+    authorName: 'Dan Brown',
+    genreName: 'Fiction'
+  }, {
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooks: ['getGenre', 'findBooksByAuthor', 'getAuthor.id']
+  }, function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, {
+      authorName: 'Dan Brown',
+      genreName: 'Fiction',
+      getAuthor: Author.all[4],
+      getGenre: Genre.all[3],
+      getBooks: [Book.all[6]]
+    });
+    test.done();
+  });  
+}
+
+module.exports["instance task execution with dot notation function"] = function(test){
+  flow({
+    authorName: 'Dan Brown',
+    genreName: 'Fiction'
+  }, {
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooks: ['getGenre.findBooksByAuthor', 'getAuthor']
+  }, function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, {
+      authorName: 'Dan Brown',
+      genreName: 'Fiction',
+      getAuthor: Author.all[4],
+      getGenre: Genre.all[3],
+      getBooks: [Book.all[6]]
+    });
+    test.done();
+  });  
+}
+
 
 module.exports["multiple asyncronus tasks with prerequisite task execution"] = function(test){
   flow( [
@@ -330,7 +372,7 @@ module.exports["multiple asyncronus tasks with prerequisite task execution"] = f
       { authorName: 'Patricia Briggs',
         genreName: 'Fantasy',
         getAuthor: { id: 1, name: 'Patricia Briggs' },
-        getGenre: { id: 1, name: 'Fantasy' },
+        getGenre: Genre.all[1],
         assertGenreExistence: true,
         getBooks: [] }]
     );
@@ -390,7 +432,7 @@ module.exports["multiple asyncronus tasks with prerequisite instance task execut
       { authorName: 'Patricia Briggs',
         genreName: 'Fantasy',
         getAuthor: { id: 1, name: 'Patricia Briggs' },
-        getGenre: { id: 1, name: 'Fantasy' },
+        getGenre: Genre.all[1],
         assertGenreExistence: true,
         getBooks: [] } 
     ]);
@@ -862,6 +904,40 @@ module.exports["two nested subflows with prereqs"] = function(test){
   });  
 }
 
+module.exports["subflow with prereqs and dot notation"] = function(test){
+  flow({ 
+    genreName: 'Fantasy',
+    authorName: 'Barbara Hambly'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooksByGenre: ['getGenre', 'getBooks'],
+    getAuthors: flow.subFlow('getBooksByGenre', {
+      getHambly2: [Author.getById, 'getHambly.id']
+    }),
+    getHambly: [Author.getByName, 'authorName']
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      authorName: 'Barbara Hambly',
+      getGenre: Genre.all[1],
+      getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getHambly: Author.all[6],
+      getAuthors: [{
+        getHambly2: Author.all[6]
+      }, {
+        getHambly2: Author.all[6]
+      }, {
+        getHambly2: Author.all[6]
+      }, {
+        getHambly2: Author.all[6]
+      }, {
+        getHambly2: Author.all[6]
+      }]
+    });
+    test.done();
+  });  
+}
 
 module.exports["subflow with empty name"] = function(test){
   try {
@@ -1098,6 +1174,37 @@ module.exports["single null data subflow execution"] = function(test){
     test.equals(e.message, "Flow error in 'getBooksByGenre': Result of 'getGenre' returned no data. Could not start SubFlow.", "error message match")
     test.done();
   }
+}
+
+module.exports["subflow with dot notation for parameter"] = function(test){
+  flow({ 
+    genreName: 'Fantasy'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooksByGenre: ['getGenre', 'getBooks'],
+    getAuthors: flow.subFlow('getBooksByGenre', {
+      getBookAuthor: [Author.getById, 'getBooksByGenre.authorId']
+    })
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results, { 
+      genreName: 'Fantasy',
+      getGenre: Genre.all[1],
+      getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
+      getAuthors: [{
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[6]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }, {
+        getBookAuthor: Author.all[5]
+      }]
+    });
+    test.done();
+  });  
 }
 
 
