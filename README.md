@@ -79,10 +79,10 @@ fnFlow.flow({
   getAuthor: [Author.getByName, 'authorName'],
   getGenre: [Genre.getByName, 'genreName'],
   assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-  getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+  getBooks: ['assertGenreExistence', 'getGenre.findBooksByAuthor', 'getAuthor.id']
 }, function(err, results) {
   if(err) return console.error(err);  //genre probably didn't exist.
-  console.log('Number of books:', results.getBooks.length);
+  console.log('Number of books:', result.getBooks.length);
 });
 ```
 Which translates to the following workflow:
@@ -106,7 +106,7 @@ fnFlow.flow([
   getAuthor: [Author.getByName, 'authorName'],
   getGenre: [Genre.getByName, 'genreName'],
   assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-  getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+  getBooks: ['assertGenreExistence', 'getGenre.findBooksByAuthor', 'getAuthor.id']
 }, function(err, results) {
   if(err) return console.error(err);  //genre probably didn't exist.
   results.forEach(function (result) {
