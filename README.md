@@ -82,7 +82,7 @@ fnFlow.flow({
   getBooks: ['assertGenreExistence', 'getGenre.findBooksByAuthor', 'getAuthor.id']
 }, function(err, results) {
   if(err) return console.error(err);  //genre probably didn't exist.
-  console.log('Number of books:', result.getBooks.length);
+  console.log('Number of books:', results.getBooks.length);
 });
 ```
 Which translates to the following workflow:
@@ -110,7 +110,7 @@ fnFlow.flow([
 }, function(err, results) {
   if(err) return console.error(err);  //genre probably didn't exist.
   results.forEach(function (result) {
-    console.log('Number of books for ' + result.getAuthor.name  + ':', results.getBooks.length);
+    console.log('Number of books for ' + result.getAuthor.name  + ':', result.getBooks.length);
   });
 });
 ```
