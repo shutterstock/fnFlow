@@ -346,6 +346,21 @@ module.exports["instance task execution with dot notation function"] = function(
   });  
 }
 
+module.exports["instance task execution with undefined dot notation function"] = function(test){
+  flow({
+    authorName: 'Dan Brown',
+    genreName: 'Superfiction'
+  }, {
+    getAuthor: [Author.getByName, 'authorName'],
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooks: ['getGenre.findBooksByAuthor', 'getAuthor']
+  }, function(err, results){
+    test.ok(err);
+    test.equals(err.message, 'Flow error in \'getBooks\': Cannot call function \'findBooksByAuthor\' on null/undefined \'getGenre\'')
+    test.done();
+  });  
+}
+
 
 module.exports["multiple asyncronus tasks with prerequisite task execution"] = function(test){
   flow( [
