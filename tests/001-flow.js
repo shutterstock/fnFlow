@@ -195,7 +195,7 @@ module.exports["instance task execution"] = function(test){
   }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
-    getBooks: ['getGenre', 'findBooksByAuthor', 'getAuthor']
+    getBooks: ['getGenre.findBooksByAuthor', 'getAuthor']
   }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
@@ -265,7 +265,7 @@ module.exports["prerequisite instance task execution"] = function(test){
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-    getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+    getBooks: ['assertGenreExistence', 'getGenre.findBooksByAuthor', 'getAuthor']
   }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
@@ -289,7 +289,7 @@ module.exports["prerequisite instance task execution with short circuit error"] 
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-    getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+    getBooks: ['assertGenreExistence', 'getGenre.findBooksByAuthor', 'getAuthor']
   }, function(err, results){
     test.ok(err);
     test.equals(err.message, "Genre did not exist");
@@ -304,14 +304,48 @@ module.exports["prerequisite instance task execution with short circuit error"] 
   });
 }
 
-module.exports["instance task execution with dot notation parameter"] = function(test){
+module.exports["multiple instance parameter"] = function(test){
+  flow({
+    page: {
+      number: 1,
+      chapter: {
+        number: 2,
+        book: Book.all[5]
+      }
+    }
+  }, {
+    getGenre: [Genre.getById, 'page.chapter.book.genreId']
+  }, function(err, results){
+    test.deepEqual(results.getGenre, Genre.all[4]);
+    test.done();
+  });
+}
+
+module.exports["result multi instance function"] = function(test){
+  flow({
+    page: {
+      number: 1,
+      chapter: {
+        number: 2,
+        book: Book.all[5]
+      }
+    }
+  }, {
+    getAuthor: ['page.chapter.book.getAuthor']
+  }, function(err, results){
+    test.deepEqual(results.getAuthor, Author.all[3]);
+    test.done();
+  });
+}
+
+module.exports["instance task execution with result instance parameter"] = function(test){
   flow({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
   }, {
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
-    getBooks: ['getGenre', 'findBooksByAuthor', 'getAuthor.id']
+    getBooks: ['getGenre.findBooksByAuthor', 'getAuthor.id']
   }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
@@ -324,43 +358,6 @@ module.exports["instance task execution with dot notation parameter"] = function
     test.done();
   });  
 }
-
-module.exports["instance task execution with dot notation function"] = function(test){
-  flow({
-    authorName: 'Dan Brown',
-    genreName: 'Fiction'
-  }, {
-    getAuthor: [Author.getByName, 'authorName'],
-    getGenre: [Genre.getByName, 'genreName'],
-    getBooks: ['getGenre.findBooksByAuthor', 'getAuthor']
-  }, function(err, results){
-    test.ok(!err);
-    test.deepEqual(results, {
-      authorName: 'Dan Brown',
-      genreName: 'Fiction',
-      getAuthor: Author.all[4],
-      getGenre: Genre.all[3],
-      getBooks: [Book.all[6]]
-    });
-    test.done();
-  });  
-}
-
-module.exports["instance task execution with undefined dot notation function"] = function(test){
-  flow({
-    authorName: 'Dan Brown',
-    genreName: 'Superfiction'
-  }, {
-    getAuthor: [Author.getByName, 'authorName'],
-    getGenre: [Genre.getByName, 'genreName'],
-    getBooks: ['getGenre.findBooksByAuthor', 'getAuthor']
-  }, function(err, results){
-    test.ok(err);
-    test.equals(err.message, 'Flow error in \'getBooks\': Cannot call function \'findBooksByAuthor\' on null/undefined \'getGenre\'')
-    test.done();
-  });  
-}
-
 
 module.exports["multiple asyncronus tasks with prerequisite task execution"] = function(test){
   flow( [
@@ -434,7 +431,7 @@ module.exports["multiple asyncronus tasks with prerequisite instance task execut
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-    getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+    getBooks: ['assertGenreExistence', 'getGenre.findBooksByAuthor', 'getAuthor']
   }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, [
@@ -468,7 +465,7 @@ module.exports["multiple asyncronus tasks with prerequisite instance task execut
     getAuthor: [Author.getByName, 'authorName'],
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-    getBooks: ['assertGenreExistence', 'getGenre', 'findBooksByAuthor', 'getAuthor']
+    getBooks: ['assertGenreExistence', 'getGenre.findBooksByAuthor', 'getAuthor']
   }, function(err, results){
     test.ok(err);
     test.equal(results[0], undefined);
@@ -490,7 +487,7 @@ module.exports["task name same as instance method"] = function(test){
     genreName: 'Fantasy'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooks: ['getGenre', 'getBooks']
+    getBooks: ['getGenre.getBooks']
   }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
@@ -502,33 +499,12 @@ module.exports["task name same as instance method"] = function(test){
   });
 }
 
-module.exports["different task name same as instance method"] = function(test){
-  try {
-    flow({
-      genreName: 'Fantasy'
-    }, {
-      getGenre: [Genre.getByName, 'genreName'],
-      getBooksByGenre: ['getGenre', 'getBooks'],
-      getBooks: ['getBooksByGenre', Book.findByGenreId, 'getGenre']
-    }, function(err, results){
-      test.fail(null, null, "no error received");
-      test.done();
-    });
-  } catch(e) {
-    test.ok(e, 'got an error'); 
-    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
-    test.equals(e.message, "Flow error in 'getBooksByGenre': Function required.", "error message match")
-    test.done();
-  }
-}
-
-
 module.exports["undefined instance error"] = function(test){
   flow({
     genreName: 'Fictiony'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooks: ['getGenre', 'getBooks']
+    getBooks: ['getGenre.getBooks']
   }, function(e, results){
     test.ok(e, 'got an error'); 
     test.equals(e.name, "FlowTaskArgumentNullError", "got FlowTaskError");
@@ -555,24 +531,24 @@ module.exports["multiple functions error"] = function(test){
   }
 }
 
-module.exports["multiple instance functions error"] = function(test){
-  try {
-    flow({
-      bookId: 1
-    }, {
-      getBook: [Book.getById, 'bookId'],
-      getBookAuthor: ['getBook', 'getAuthor', 'getAuthor']
-    }, function(err, results){
-      test.fail(null, null, "no error received");
-      test.done();
-    });
-  } catch(e) {
-    test.ok(e, 'got an error'); 
-    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
-    test.equals(e.message, "Flow error in 'getBookAuthor': More than one function specified (at index 1 and 2).", "error message match")
-    test.done();
-  }
-}
+// module.exports["multiple instance functions error"] = function(test){
+//   try {
+//     flow({
+//       bookId: 1
+//     }, {
+//       getBook: [Book.getById, 'bookId'],
+//       getBookAuthor: ['getBook.getAuthor', 'getBook.getAuthor']
+//     }, function(err, results){
+//       test.fail(null, null, "no error received");
+//       test.done();
+//     });
+//   } catch(e) {
+//     test.ok(e, 'got an error'); 
+//     test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+//     test.equals(e.message, "Flow error in 'getBookAuthor': More than one function specified (at index 1 and 2).", "error message match")
+//     test.done();
+//   }
+// }
 
 module.exports["unknown symbol error"] = function(test){
   try {
@@ -580,7 +556,7 @@ module.exports["unknown symbol error"] = function(test){
       bookId: 1
     }, {
       getBook: [Book.getById, 'bookId'],
-      getAuthor: ['getBook', 'notafunction']
+      getAuthor: ['getBook.notafunction']
     }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
@@ -607,7 +583,7 @@ module.exports["unknown symbol for first task argument"] = function(test){
   } catch(e) {
     test.ok(e, 'got an error'); 
     test.equals(e.name, 'FlowTaskError')
-    test.equals(e.message, "Flow error in 'getAuthor': Unknown symbol at index '0' must be either the name of a task, the name of data, or be the name of a function on the result of a task or data", "error message match")
+    test.equals(e.message, "Flow error in 'getAuthor': Unknown string 'notafunction' must be either the name of a task or the name of data", "error message match")
     test.done();
   }
 }
@@ -670,7 +646,7 @@ module.exports["missing function in task args error"] = function(test){
   }
 }
 
-module.exports["missing function in task args error"] = function(test){
+module.exports["invalid flow type task"] = function(test){
   try {
     flow({
       bookId: 1
@@ -684,7 +660,7 @@ module.exports["missing function in task args error"] = function(test){
   } catch(e) {
     test.ok(e, 'got an error'); 
     test.equals(e.name, "FlowTaskError", "got FlowTaskError");
-    test.equals(e.message, "Flow error in 'getAuthor': Invalid flow type. Must be function, or array.", "error message match")
+    test.equals(e.message, "Flow error in 'getAuthor': Invalid flow type. Must be function, subFlow, or array.", "error message match")
     test.done();
   }
 }
@@ -716,9 +692,9 @@ module.exports["array result data execution"] = function(test){
     genreName: 'Fantasy'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooksByGenre: ['getGenre', 'getBooks'],
+    getBooksByGenre: ['getGenre.getBooks'],
     getAuthors: flow.subFlow('getBooksByGenre', {
-      getBookAuthor: ['getBooksByGenre', 'getAuthor']
+      getBookAuthor: ['getBooksByGenre.getAuthor']
     })
   }, function(err, results){
     test.ok(!err, 'no error');
@@ -748,7 +724,7 @@ module.exports["array result data execution with context"] = function(test){
     genreName: 'Fantasy'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooksByGenre: ['getGenre', 'getBooks'],
+    getBooksByGenre: ['getGenre.getBooks'],
     getAuthors: flow.subFlow('getBooksByGenre', {
       getBookAuthor: [Author.getById, 'authorId']
     })
@@ -780,9 +756,9 @@ module.exports["array result data execution using subFlow"] = function(test){
     genreName: 'Fantasy'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooksByGenre: ['getGenre', 'getBooks'],
+    getBooksByGenre: ['getGenre.getBooks'],
     getAuthors: flow.subFlow('getBooksByGenre', {
-      getBookAuthor: ['getBooksByGenre', 'getAuthor']
+      getBookAuthor: ['getBooksByGenre.getAuthor']
     })
   }, function(err, results){
     test.ok(!err, 'no error');
@@ -814,7 +790,7 @@ module.exports["array result data execution with prereqs using subFlow"] = funct
     authorName: 'Barbara Hambly'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooksByGenre: ['getGenre', 'getBooks'],
+    getBooksByGenre: ['getGenre.getBooks'],
     getAuthors: flow.subFlow('getBooksByGenre', {
       getHambly2: [Author.getById, 'getHambly']
     }),
@@ -850,9 +826,9 @@ module.exports["two nested subflows with prereqs"] = function(test){
     authorName: 'Barbara Hambly'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooksByGenre: ['getGenre', 'getBooks'],
+    getBooksByGenre: ['getGenre.getBooks'],
     getAuthors: flow.subFlow('getBooksByGenre', {
-      getBookAuthor: ['getBooksByGenre', 'getAuthor'],
+      getBookAuthor: ['getBooksByGenre.getAuthor'],
       getBooksByAuthor: [Book.findByAuthorId, 'getBookAuthor'],
       getManyHamblies: flow.subFlow('getBooksByAuthor', {
         getHambly2: [Author.getById, 'getHambly']
@@ -919,13 +895,13 @@ module.exports["two nested subflows with prereqs"] = function(test){
   });  
 }
 
-module.exports["subflow with prereqs and dot notation"] = function(test){
+module.exports["subflow with prereqs and result instance parameter"] = function(test){
   flow({ 
     genreName: 'Fantasy',
     authorName: 'Barbara Hambly'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooksByGenre: ['getGenre', 'getBooks'],
+    getBooksByGenre: ['getGenre.getBooks'],
     getAuthors: flow.subFlow('getBooksByGenre', {
       getHambly2: [Author.getById, 'getHambly.id']
     }),
@@ -960,9 +936,9 @@ module.exports["subflow with empty name"] = function(test){
       genreName: 'Fantasy'
     }, {
       getGenre: [Genre.getByName, 'genreName'],
-      getBooksByGenre: ['getGenre', 'getBooks'],
+      getBooksByGenre: ['getGenre.getBooks'],
       getAuthors: flow.subFlow('', {
-        getBookAuthor: ['getBooksByGenre', 'getAuthor']
+        getBookAuthor: ['getBooksByGenre.getAuthor']
       })
     }, function(err, results){
       test.fail(null, null, "no error received");
@@ -982,7 +958,7 @@ module.exports["subflow with no tasks"] = function(test){
       genreName: 'Fantasy'
     }, {
       getGenre: [Genre.getByName, 'genreName'],
-      getBooksByGenre: ['getGenre', 'getBooks'],
+      getBooksByGenre: ['getGenre.getBooks'],
       getAuthors: flow.subFlow('getBooksByGenre', null)
     }, function(err, results){
       test.fail(null, null, "no error received");
@@ -1003,9 +979,9 @@ module.exports["subflow with bad data name"] = function(test){
       genreName: 'Fantasy'
     }, {
       getGenre: [Genre.getByName, 'genreName'],
-      getBooksByGenre: ['getGenre', 'getBooks'],
+      getBooksByGenre: ['getGenre.getBooks'],
       getAuthors: flow.subFlow('asdf', {
-        getBookAuthor: ['getBooksByGenre', 'getAuthor']
+        getBookAuthor: ['getBooksByGenre.getAuthor']
       })
     }, function(err, results){
       test.fail(null, null, "no error received");
@@ -1025,9 +1001,9 @@ module.exports["subflow task with own data name"] = function(test){
       genreName: 'Fantasy'
     }, {
       getGenre: [Genre.getByName, 'genreName'],
-      getBooksByGenre: ['getGenre', 'getBooks'],
+      getBooksByGenre: ['getGenre.getBooks'],
       getAuthors: flow.subFlow('getAuthors', {
-        getBookAuthor: ['getBooksByGenre', 'getAuthor']
+        getBookAuthor: ['getBooksByGenre.getAuthor']
       })
     }, function(err, results){
       test.fail(null, null, "no error received");
@@ -1048,7 +1024,7 @@ module.exports["subflow with explicit prereq"] = function(test){
   }, {
     getGenre: [Genre.getByName, 'genreName'],
     assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-    getBooksByGenre: ['getGenre', 'getBooks'],
+    getBooksByGenre: ['getGenre.getBooks'],
     getAuthors: ['assertGenreExistence', flow.subFlow('getBooksByGenre', {
       getBookAuthor: [Author.getById, 'authorId']
     })]
@@ -1082,7 +1058,7 @@ module.exports["subflow out of order"] = function(test){
     }, {
       getGenre: [Genre.getByName, 'genreName'],
       assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-      getBooksByGenre: ['getGenre', 'getBooks'],
+      getBooksByGenre: ['getGenre.getBooks'],
       getAuthors: [flow.subFlow('getBooksByGenre', {
         getBookAuthor: [Author.getById, 'authorId']
       }), 'assertGenreExistence']
@@ -1093,7 +1069,7 @@ module.exports["subflow out of order"] = function(test){
   } catch(e){
     test.ok(e, 'got an error'); 
     test.equals(e.name, "FlowTaskError", "got Error");
-    test.equals(e.message, "Flow error in 'getAuthors': SubFlows must be the at the last index.", "error message match")
+    test.equals(e.message, "Flow error in 'getAuthors': SubFlows must be at the last index.", "error message match")
     test.done();
   }
 }
@@ -1106,7 +1082,7 @@ module.exports["subflow in task array with bad data name"] = function(test){
     }, {
       getGenre: [Genre.getByName, 'genreName'],
       assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-      getBooksByGenre: ['getGenre', 'getBooks'],
+      getBooksByGenre: ['getGenre.getBooks'],
       getAuthors: ['assertGenreExistence', flow.subFlow('asdf', {
         getBookAuthor: [Author.getById, 'authorId']
       })]
@@ -1130,7 +1106,7 @@ module.exports["subflow in task array with own data name"] = function(test){
     }, {
       getGenre: [Genre.getByName, 'genreName'],
       assertGenreExistence: [Genre.assertExistence, 'getGenre'],
-      getBooksByGenre: ['getGenre', 'getBooks'],
+      getBooksByGenre: ['getGenre.getBooks'],
       getAuthors: ['assertGenreExistence', flow.subFlow('getAuthors', {
         getBookAuthor: [Author.getById, 'authorId']
       })]
@@ -1191,12 +1167,12 @@ module.exports["single null data subflow execution"] = function(test){
   }
 }
 
-module.exports["subflow with dot notation for parameter"] = function(test){
+module.exports["subflow with result instance parameter"] = function(test){
   flow({ 
     genreName: 'Fantasy'
   }, {
     getGenre: [Genre.getByName, 'genreName'],
-    getBooksByGenre: ['getGenre', 'getBooks'],
+    getBooksByGenre: ['getGenre.getBooks'],
     getAuthors: flow.subFlow('getBooksByGenre', {
       getBookAuthor: [Author.getById, 'getBooksByGenre.authorId']
     })
@@ -1221,6 +1197,7 @@ module.exports["subflow with dot notation for parameter"] = function(test){
     test.done();
   });  
 }
+
 
 
 // module.exports["array result data execution"] = function(test){
@@ -1257,3 +1234,10 @@ module.exports["subflow with dot notation for parameter"] = function(test){
 // }
 
 
+// flow({
+//   some_data: 2,
+//   some_value: '3.2',
+// }, {
+//   test1: flow.asyncTask([Class.doSomething, 'some_data']),
+//   test3: flow.syncTask([parseInt, 'some_value'])
+// })
