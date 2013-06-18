@@ -1198,6 +1198,42 @@ module.exports["subflow with result instance parameter"] = function(test){
   });  
 }
 
+module.exports["asynchronous task execution"] = function(test){
+  flow({
+    id: 3,
+  }, {
+    getBook: flow.asyncTask([Book.getById, 'id']),
+    getAuthor: flow.asyncTask([Author.getById, 'getBook.authorId']),
+  }, function(err, results){
+    test.deepEqual({
+      id: 3,
+      getBook: Book.all[3],
+      getAuthor: Author.all[1],
+    }, results);
+    test.done();
+  });
+}
+
+module.exports["synchronous task execution"] = function(test){
+  flow({
+    id: 3,
+    new_object: {}
+  }, {
+    getBook: [Book.getById, 'id'],
+    getAuthor: [Author.getById, 'getBook.authorId'],
+    getBookAuthorData: flow.syncTask([us.extend, 'new_object', 'getBook', 'getAuthor'])
+  }, function(err, results){
+    test.deepEqual({
+      id: 3,
+      new_object: us.extend({}, Book.all[3], Author.all[1]),
+      getBook: Book.all[3],
+      getAuthor: Author.all[1],
+      getBookAuthorData: us.extend({}, Book.all[3], Author.all[1])
+    }, results);
+    test.done();
+  });
+}
+
 
 
 // module.exports["array result data execution"] = function(test){
