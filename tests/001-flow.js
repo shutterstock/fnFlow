@@ -702,17 +702,9 @@ module.exports["array result data execution"] = function(test){
       genreName: 'Fantasy',
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
-      getAuthors: [{
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }]
+      getAuthors: {
+        getBookAuthor: [Author.all[6], Author.all[6], Author.all[5], Author.all[5], Author.all[5]]
+      }
     });
     test.done();
   });  
@@ -734,17 +726,9 @@ module.exports["array result data execution with context"] = function(test){
       genreName: 'Fantasy',
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
-      getAuthors: [{
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }]
+      getAuthors: {
+        getBookAuthor: [Author.all[6], Author.all[6], Author.all[5], Author.all[5], Author.all[5]]
+      }
     });
     test.done();
   });  
@@ -766,17 +750,9 @@ module.exports["array result data execution using subFlow"] = function(test){
       genreName: 'Fantasy',
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
-      getAuthors: [{
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }]
+      getAuthors: {
+        getBookAuthor: [Author.all[6], Author.all[6], Author.all[5], Author.all[5], Author.all[5]]
+      }
     });
     test.done();
   });  
@@ -803,17 +779,9 @@ module.exports["array result data execution with prereqs using subFlow"] = funct
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
       getHambly: Author.all[6],
-      getAuthors: [{
-        getHambly2: Author.all[6]
-      }, {
-        getHambly2: Author.all[6]
-      }, {
-        getHambly2: Author.all[6]
-      }, {
-        getHambly2: Author.all[6]
-      }, {
-        getHambly2: Author.all[6]
-      }]
+      getAuthors: {
+        getHambly2: [Author.all[6], Author.all[6], Author.all[6], Author.all[6], Author.all[6]]
+      }
     });
     test.done();
   });  
@@ -843,53 +811,27 @@ module.exports["two nested subflows with prereqs"] = function(test){
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
       getHambly: Author.all[6],
-      getAuthors: [{
-        getBookAuthor: Author.all[6],
-        getBooksByAuthor: [Book.all[7], Book.all[8]],
+      getAuthors: {
+        getBookAuthor: [Author.all[6], Author.all[6], Author.all[5], Author.all[5], Author.all[5]],
+        getBooksByAuthor: [
+          [Book.all[7], Book.all[8]],
+          [Book.all[7], Book.all[8]],
+          [Book.all[9], Book.all[10], Book.all[11]],
+          [Book.all[9], Book.all[10], Book.all[11]],
+          [Book.all[9], Book.all[10], Book.all[11]],
+        ],
         getManyHamblies: [{
-          getHambly2: Author.all[6]
+          getHambly2: [Author.all[6], Author.all[6]]
         }, {
-          getHambly2: Author.all[6]
+          getHambly2: [Author.all[6], Author.all[6]]
+        }, {
+          getHambly2: [Author.all[6], Author.all[6], Author.all[6]]
+        }, {
+          getHambly2: [Author.all[6], Author.all[6], Author.all[6]]
+        }, {
+          getHambly2: [Author.all[6], Author.all[6], Author.all[6]]
         }]
-      }, {
-        getBookAuthor: Author.all[6],
-        getBooksByAuthor: [Book.all[7], Book.all[8]],
-        getManyHamblies: [{
-          getHambly2: Author.all[6]
-        }, {
-          getHambly2: Author.all[6]
-        }]
-      }, {
-        getBookAuthor: Author.all[5],
-        getBooksByAuthor: [Book.all[9], Book.all[10], Book.all[11]],
-        getManyHamblies: [{
-          getHambly2: Author.all[6]
-        }, {
-          getHambly2: Author.all[6]
-        }, {
-          getHambly2: Author.all[6]
-        }]
-      }, {
-        getBookAuthor: Author.all[5],
-        getBooksByAuthor: [Book.all[9], Book.all[10], Book.all[11]],
-        getManyHamblies: [{
-          getHambly2: Author.all[6]
-        }, {
-          getHambly2: Author.all[6]
-        }, {
-          getHambly2: Author.all[6]
-        }]
-      }, {
-        getBookAuthor: Author.all[5],
-        getBooksByAuthor: [Book.all[9], Book.all[10], Book.all[11]],
-        getManyHamblies: [{
-          getHambly2: Author.all[6]
-        }, {
-          getHambly2: Author.all[6]
-        }, {
-          getHambly2: Author.all[6]
-        }]
-      }]
+      }
     });
     test.done();
   });  
@@ -914,17 +856,9 @@ module.exports["subflow with prereqs and result instance parameter"] = function(
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
       getHambly: Author.all[6],
-      getAuthors: [{
-        getHambly2: Author.all[6]
-      }, {
-        getHambly2: Author.all[6]
-      }, {
-        getHambly2: Author.all[6]
-      }, {
-        getHambly2: Author.all[6]
-      }, {
-        getHambly2: Author.all[6]
-      }]
+      getAuthors: {
+        getHambly2: [Author.all[6], Author.all[6], Author.all[6], Author.all[6], Author.all[6]]
+      }
     });
     test.done();
   });  
@@ -1035,17 +969,9 @@ module.exports["subflow with explicit prereq"] = function(test){
       assertGenreExistence: true,
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
-      getAuthors: [{
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }]
+      getAuthors: {
+        getBookAuthor: [Author.all[6], Author.all[6], Author.all[5], Author.all[5], Author.all[5]]
+      }
     });
     test.done();
   });  
@@ -1182,17 +1108,9 @@ module.exports["subflow with result instance parameter"] = function(test){
       genreName: 'Fantasy',
       getGenre: Genre.all[1],
       getBooksByGenre: [Book.all[7], Book.all[8], Book.all[9], Book.all[10], Book.all[11]],
-      getAuthors: [{
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[6]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }, {
-        getBookAuthor: Author.all[5]
-      }]
+      getAuthors: {
+        getBookAuthor: [Author.all[6], Author.all[6], Author.all[5], Author.all[5], Author.all[5]]
+      }
     });
     test.done();
   });  
