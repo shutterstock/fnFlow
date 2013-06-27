@@ -410,8 +410,22 @@ module.exports["undefined instance error"] = function(test){
     getBooks: ['getGenre.getBooks']
   }, function(e, results){
     test.ok(e, 'got an error'); 
-    test.equals(e.name, "FlowTaskArgumentNullError", "got FlowTaskError");
-    test.equals(e.message, "Flow error in 'getBooks': Cannot call function 'getBooks' on null/undefined 'getGenre'", "error message match")
+    test.equals(e.name, "ArgumentNullError", "got proper error");
+    test.equals(e.message, 'Not Found: "getGenre" with genreName "Fictiony"')
+    test.done();
+  });
+}
+
+module.exports["undefined instance error 2"] = function(test){
+  flow({
+    genreName: 'Fiction'
+  }, {
+    getGenre: [Genre.getByName, 'genreName'],
+    getBooks: [Book.findByGenreId, 'getGenre.id.undef_value.err']
+  }, function(e, results){
+    test.ok(e, 'got an error'); 
+    test.equals(e.name, "ArgumentNullError", "got proper error");
+    test.equals(e.message, 'Not Found: "id.undef_value" for getGenre with genreName "Fiction"')
     test.done();
   });
 }
