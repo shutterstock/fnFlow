@@ -143,3 +143,24 @@ module.exports["subFlow execution with argument null error"] = function(test){
   });  
 }
 
+module.exports["subFlow execution with assert exists failure on context"] = function(test){
+  flow({
+    data: [{
+      genre_name: 'Fantasy'
+    }, {
+      genre_name: 'Sports'
+    }, {
+      genre_name: 'Non-Fantasy'
+    }]
+  }, {
+    do_all: flow.subFlow('data', {
+      genre: flow.asyncTask(Genre.getByName, 'genre_name').assertExists(),
+    })
+  }, function(err, results){
+    test.ok(err, 'got error');
+    test.equals(err && err.name, 'ArgumentNullError');
+    test.equals(err && err.argumentName, 'genre');
+    test.equals(err && err.message, 'Not Found: "genre" with genre_name "Non-Fantasy"');
+    test.done();
+  });  
+}
