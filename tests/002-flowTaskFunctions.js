@@ -1,6 +1,6 @@
 var flow = require('../lib/fnFlow').flow;
 var us = require('underscore');
-var errors = require('errors');
+var errors = require('common-errors');
 var test_data = require('../support/test-data');
 
 Book = test_data.Book;
