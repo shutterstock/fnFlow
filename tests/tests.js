@@ -442,22 +442,17 @@ module.exports["function as arg error"] = function(test){
 }
 
 module.exports["unknown symbol error"] = function(test){
-  try {
-    var flow = new Flow({
-      bookId: 1
-    });
-    flow.addTask('getBook', Book.getById, 'bookId');
-    flow.addTask('getAuthor', 'getBook.notafunction');
-    flow.execute(function(err, results){
-      test.fail(null, null, "no error received");
-      test.done();
-    });
-  } catch(e) {
+  var flow = new Flow({
+    bookId: 1
+  });
+  flow.addTask('getBook', Book.getById, 'bookId');
+  flow.addTask('getAuthor', 'getBook.notafunction');
+  flow.execute(function(e, results){
     test.ok(e, 'got an error'); 
     test.equals(e.name, "FlowTaskError", "got FlowTaskError");
     test.equals(e.message, "Flow error in 'getAuthor': Unknown symbol 'notafunction' must be either the name of a task, the name of data, or the name of a function on 'getBook'", "error message match")
     test.done();
-  }
+  });
 }
 
 module.exports["unknown symbol for first task argument"] = function(test){
@@ -518,22 +513,17 @@ module.exports["missing task args error"] = function(test){
 }
 
 module.exports["missing function in task args error"] = function(test){
-  try {
     var flow = new Flow({
       bookId: 1
     });
     flow.addTask('getBook', Book.getById, 'bookId');
     flow.addTask('getAuthor', 'getBook');
-    flow.execute(function(err, results){
-      test.fail(null, null, "no error received");
+    flow.execute(function(e, results){
+      test.ok(e, 'got an error'); 
+      test.equals(e.name, "FlowTaskError", "got FlowTaskError");
+      test.equals(e.message, "Flow error in 'getAuthor': Not a function: getBook", "error message match")
       test.done();
     });
-  } catch(e) {
-    test.ok(e, 'got an error'); 
-    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
-    test.equals(e.message, "Flow error in 'getAuthor': Not a function: getBook", "error message match")
-    test.done();
-  }
 }
 
 module.exports["invalid flow type task"] = function(test){
