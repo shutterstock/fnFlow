@@ -1,4 +1,4 @@
-var flow = require('../lib/fnFlow').flow;
+var Flow = require('../lib/fnFlow').Flow;
 var us = require('underscore');
 var errors = require('common-errors');
 var test_data = require('../support/test-data');
@@ -16,22 +16,22 @@ module.exports.tearDown = function(cb){
 }
 
 module.exports["flow task assert exists"] = function(test){
-  flow({
+  var flow = new Flow({
     bookId: 1
-  }, {
-    book: flow.asyncTask(Book.getById, 'bookId').assertExists()
-  }, function(err, results){
+  });
+  flow.addTask('book', Book.getById, 'bookId').assertExists();
+  flow.execute(function(err, results){
     test.ok(!err, 'no error');
     test.done();
   });
 }
 
 module.exports["flow task assert exists fail"] = function(test){
-  flow({
+  var flow = new Flow({
     bookId: 1000
-  }, {
-    book: flow.asyncTask(Book.getById, 'bookId').assertExists()
-  }, function(err, results){
+  });
+  flow.addTask('book', Book.getById, 'bookId').assertExists();
+  flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
     test.equals(err && err.argumentName, 'book');
@@ -41,34 +41,34 @@ module.exports["flow task assert exists fail"] = function(test){
 }
 
 module.exports["flow task assert exists fail 2"] = function(test){
-  flow({
+  var flow = new Flow({
     bookId: 4
-  }, {
-    book: flow.asyncTask(Book.getById, 'bookId'),
-    bookSeries: flow.asyncTask('book.getBookSeries').assertExists()
-  }, function(err, results){
+  });
+  flow.addTask('book', Book.getById, 'bookId');
+  flow.addTask('bookSeries', 'book.getBookSeries').assertExists();
+  flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
     test.equals(err && err.argumentName, 'bookSeries');
-    test.equals(err && err.message, 'Not Found: "bookSeries" for book with bookId 4');
+    test.equals(err && err.message, 'Not Found: "bookSeries" with bookId 4');
     test.done();
   });
 }
 
 module.exports["flow task assert exists fail 3"] = function(test){
-  flow({
+  var flow = new Flow({
     genreName: 'Sports',
     authorName: 'Tom Coughlin'
-  }, {
-    genre: [Genre.getByName, 'genreName'],
-    author: [Author.getByName, 'authorName'],
-    book: flow.asyncTask(Book.getFirstByGenreAndAuthor, 'genre', 'author'),
-    bookSeries: flow.asyncTask('book.getBookSeries').assertExists()
-  }, function(err, results){
+  });
+  flow.addTask('genre', Genre.getByName, 'genreName');
+  flow.addTask('author', Author.getByName, 'authorName');
+  flow.addTask('book', Book.getFirstByGenreAndAuthor, 'genre', 'author');
+  flow.addTask('bookSeries', 'book.getBookSeries').assertExists();
+  flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
     test.equals(err && err.argumentName, 'bookSeries');
-    test.equals(err && err.message, 'Not Found: "bookSeries" for book, genre and author with genreName "Sports" and authorName "Tom Coughlin"');
+    test.equals(err && err.message, 'Not Found: "bookSeries" with genreName "Sports" and authorName "Tom Coughlin"');
     test.done();
   });
 }
@@ -78,89 +78,41 @@ module.exports["flow task assert exists fail argument null error"] = function(te
     cb(new errors.ArgumentNull('book'));
   };
 
-  flow({
+  var flow = new Flow({
     genreName: 'Sports',
     authorName: 'Tom Coughlin'
-  }, {
-    genre: [Genre.getByName, 'genreName'],
-    author: [Author.getByName, 'authorName'],
-    book: flow.asyncTask(Book.getFirstByGenreAndAuthor, 'genre', 'author'),
-    bookSeries: flow.asyncTask(testFunction, 'book')
-  }, function(err, results){
+  });
+  flow.addTask('genre', Genre.getByName, 'genreName');
+  flow.addTask('author', Author.getByName, 'authorName');
+  flow.addTask('book', Book.getFirstByGenreAndAuthor, 'genre', 'author');
+  flow.addTask('bookSeries', testFunction, 'book');
+  flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
     test.equals(err && err.argumentName, 'book');
-    test.equals(err && err.message, 'Not Found: "book" for genre and author with genreName "Sports" and authorName "Tom Coughlin"');
+    test.equals(err && err.message, 'Not Found: "book" with genreName "Sports" and authorName "Tom Coughlin"');
     test.done();
   });
 }
-
 
 module.exports["subFlow execution with assert exists failure"] = function(test){
   var testFunction = function(book, cb) {
     return cb();
   }
 
-  flow({ 
+  var flow = new Flow({ 
     genreName: 'Fantasy'
-  }, {
-    genre: [Genre.getByName, 'genreName'],
-    books: ['genre.getBooks'],
-    authors: [flow.subFlow('books', {
-      test_null: [testFunction, 'books'],
-      author: flow.asyncTask(Author.getById, 'test_null').assertExists()
-    })]
-  }, function(err, results){
+  });
+  flow.addTask('genre', Genre.getByName, 'genreName');
+  flow.addTask('books', 'genre.getBooks');
+  var subflow = flow.addFlow('authors', 'books');
+    subflow.addTask('test_null', testFunction, 'books');
+    subflow.addTask('author', Author.getById, 'test_null').assertExists();
+  flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
     test.equals(err && err.argumentName, 'author');
-    test.equals(err && err.message, 'Not Found: "author" for test_null, books and genre with genreName "Fantasy"');
-    test.done();
-  });  
-}
-
-module.exports["subFlow execution with argument null error"] = function(test){
-  var testFunction = function(author, cb) {
-    return cb(new errors.ArgumentNull('author'));
-  }
-
-  flow({ 
-    test_data: "asdflkj",
-    genreName: 'Fantasy'
-  }, {
-    genre: [Genre.getByName, 'genreName'],
-    books: ['genre.getBooks'],
-    authors: [flow.subFlow('books', {
-      author: flow.asyncTask(Author.getById, 'books.no_data'),
-      test_null: [testFunction, 'author']
-    })]
-  }, function(err, results){
-    test.ok(err, 'got error');
-    test.equals(err && err.name, 'ArgumentNullError');
-    test.equals(err && err.argumentName, 'author');
-    test.equals(err && err.message, 'Not Found: "author" for books and genre with genreName "Fantasy"');
-    test.done();
-  });  
-}
-
-module.exports["subFlow execution with assert exists failure on context"] = function(test){
-  flow({
-    data: [{
-      genre_name: 'Fantasy'
-    }, {
-      genre_name: 'Sports'
-    }, {
-      genre_name: 'Non-Fantasy'
-    }]
-  }, {
-    do_all: flow.subFlow('data', {
-      genre: flow.asyncTask(Genre.getByName, 'genre_name').assertExists(),
-    })
-  }, function(err, results){
-    test.ok(err, 'got error');
-    test.equals(err && err.name, 'ArgumentNullError');
-    test.equals(err && err.argumentName, 'genre');
-    test.equals(err && err.message, 'Not Found: "genre" with genre_name "Non-Fantasy"');
+    test.equals(err && err.message, 'Not Found: "author" with genreName "Fantasy"');
     test.done();
   });  
 }
