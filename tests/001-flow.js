@@ -42,6 +42,23 @@ module.exports["flow functions and data"] = function(test){
   });
 }
 
+module.exports["flow functions and data with array args"] = function(test){
+  var flow = new Flow({
+    authorId: 5
+  });
+  flow.addTask('getAuthor', Author.getById, ['authorId']);
+  flow.addTask('getBooks', Book.findByAuthorId, ['getAuthor']);
+  flow.execute(function(err, results){
+    test.ok(!err);
+    test.deepEqual(results, {
+      authorId: 5,
+      getAuthor: Author.all[5],
+      getBooks: [Book.all[9], Book.all[10], Book.all[11]]
+    });
+    test.done();
+  });
+}
+
 module.exports["parallel flow functions and data"] = function(test){
   var flow = new Flow({
     authorName: 'Dan Brown',
