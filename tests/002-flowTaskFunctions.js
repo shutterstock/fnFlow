@@ -19,7 +19,7 @@ module.exports["flow task assert exists"] = function(test){
   var flow = new Flow({
     bookId: 1
   });
-  flow.addTask('book', Book.getById, 'bookId').assertExists();
+  flow.tasks.book = new Flow.Task(Book.getById, 'bookId').assertExists();
   flow.execute(function(err, results){
     test.ok(!err, 'no error');
     test.done();
@@ -30,7 +30,7 @@ module.exports["flow task assert exists fail"] = function(test){
   var flow = new Flow({
     bookId: 1000
   });
-  flow.addTask('book', Book.getById, 'bookId').assertExists();
+  flow.tasks.book = new Flow.Task(Book.getById, 'bookId').assertExists();
   flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
@@ -44,8 +44,8 @@ module.exports["flow task assert exists fail 2"] = function(test){
   var flow = new Flow({
     bookId: 4
   });
-  flow.addTask('book', Book.getById, 'bookId');
-  flow.addTask('bookSeries', 'book.getBookSeries').assertExists();
+  flow.tasks.book = new Flow.Task(Book.getById, 'bookId');
+  flow.tasks.bookSeries = new Flow.Task('book.getBookSeries').assertExists();
   flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
@@ -60,10 +60,10 @@ module.exports["flow task assert exists fail 3"] = function(test){
     genreName: 'Sports',
     authorName: 'Tom Coughlin'
   });
-  flow.addTask('genre', Genre.getByName, 'genreName');
-  flow.addTask('author', Author.getByName, 'authorName');
-  flow.addTask('book', Book.getFirstByGenreAndAuthor, 'genre', 'author');
-  flow.addTask('bookSeries', 'book.getBookSeries').assertExists();
+  flow.tasks.genre = new Flow.Task(Genre.getByName, 'genreName');
+  flow.tasks.author = new Flow.Task(Author.getByName, 'authorName');
+  flow.tasks.book = new Flow.Task(Book.getFirstByGenreAndAuthor, 'genre', 'author');
+  flow.tasks.bookSeries = new Flow.Task('book.getBookSeries').assertExists();
   flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
@@ -82,10 +82,10 @@ module.exports["flow task assert exists fail argument null error"] = function(te
     genreName: 'Sports',
     authorName: 'Tom Coughlin'
   });
-  flow.addTask('genre', Genre.getByName, 'genreName');
-  flow.addTask('author', Author.getByName, 'authorName');
-  flow.addTask('book', Book.getFirstByGenreAndAuthor, 'genre', 'author');
-  flow.addTask('bookSeries', testFunction, 'book');
+  flow.tasks.genre = new Flow.Task(Genre.getByName, 'genreName');
+  flow.tasks.author = new Flow.Task(Author.getByName, 'authorName');
+  flow.tasks.book = new Flow.Task(Book.getFirstByGenreAndAuthor, 'genre', 'author');
+  flow.tasks.bookSeries = new Flow.Task(testFunction, 'book');
   flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
@@ -103,11 +103,11 @@ module.exports["subFlow execution with assert exists failure"] = function(test){
   var flow = new Flow({ 
     genreName: 'Fantasy'
   });
-  flow.addTask('genre', Genre.getByName, 'genreName');
-  flow.addTask('books', 'genre.getBooks');
-  var subflow = flow.addFlow('authors', 'books');
-    subflow.addTask('test_null', testFunction, 'books');
-    subflow.addTask('author', Author.getById, 'test_null').assertExists();
+  flow.tasks.genre = new Flow.Task(Genre.getByName, 'genreName');
+  flow.tasks.books = new Flow.Task('genre.getBooks');
+  var subflow = flow.tasks.authors = new Flow('books');
+    subflow.tasks.test_null = new Flow.Task(testFunction, 'books');
+    subflow.tasks.author = new Flow.Task(Author.getById, 'test_null').assertExists();
   flow.execute(function(err, results){
     test.ok(err, 'got error');
     test.equals(err && err.name, 'ArgumentNullError');
