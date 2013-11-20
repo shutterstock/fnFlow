@@ -1,6 +1,6 @@
 var us = require('underscore');
 var test_data = require('../support/test-data');
-var Flow = require('../lib/fnFlow').Flow;
+var Flow = require('../lib/fnFlow').Flow, Task = Flow.Task, Fn = Flow.Fn;
 
 Book = test_data.Book;
 Author = test_data.Author;
@@ -15,23 +15,23 @@ module.exports.tearDown = function(cb){
 }
 
 module.exports["flow data"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getBook: new Task(Book.getById, 'bookId')
+  }).execute({
     bookId: 1
-  });
-  flow.tasks.getBook = new Flow.Task(Book.getById, 'bookId');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.equals(results.getBook, Book.all[1]);
     test.done();
   });
 }
 
 module.exports["flow functions and data"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getById, 'authorId'),
+    getBooks: new Task(Book.findByAuthorId, 'getAuthor')
+  }).execute({
     authorId: 5
-  });
-  flow.tasks.getAuthor = new Flow.Task(Author.getById, 'authorId');
-  flow.tasks.getBooks = new Flow.Task(Book.findByAuthorId, 'getAuthor');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorId: 5,
@@ -43,14 +43,14 @@ module.exports["flow functions and data"] = function(test){
 }
 
 module.exports["parallel flow functions and data"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooks: new Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor'),
+  }).execute({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  });
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooks = new Flow.Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -64,9 +64,9 @@ module.exports["parallel flow functions and data"] = function(test){
 }
 
 module.exports["function as task"] = function(test){
-  var flow = new Flow({});
-  flow.tasks.getAuthors = new Flow.Task(Author.getAll);
-  flow.execute(function(err, results){
+  new Flow({
+    getAuthors: new Task(Author.getAll)
+  }).execute(function(err, results){
     test.ok(!err, "no error");
     test.deepEqual(results, {
       getAuthors: Author.all
@@ -76,14 +76,14 @@ module.exports["function as task"] = function(test){
 }
 
 module.exports["flow task callback with error"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooks: new Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor')
+  }).execute({
     authorName: 'Dan Brown',
     genreName: '???'
-  });
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooks = new Flow.Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(err);
     test.equals(err.message, "this was a test");
     test.done();
@@ -91,14 +91,14 @@ module.exports["flow task callback with error"] = function(test){
 }
 
 module.exports["instance task execution"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooks: new Task('getGenre.findBooksByAuthor', 'getAuthor')
+  }).execute({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  });
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooks = new Flow.Task('getGenre.findBooksByAuthor', 'getAuthor');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -112,15 +112,15 @@ module.exports["instance task execution"] = function(test){
 }
 
 module.exports["prerequisite task execution"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooks: new Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor').requires('assertGenreExistence')
+  }).execute({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  });
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooks = new Flow.Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor').requires('assertGenreExistence');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -135,15 +135,15 @@ module.exports["prerequisite task execution"] = function(test){
 }
 
 module.exports["prerequisite task execution with short circuit error"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooks: new Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor').requires('assertGenreExistence')
+  }).execute({
     authorName: 'Dan Brown',
     genreName: 'Yourmom'
-  })
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooks = new Flow.Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor').requires('assertGenreExistence');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(err);
     test.equals(err.message, "Genre did not exist");
     test.deepEqual(results, {
@@ -158,15 +158,15 @@ module.exports["prerequisite task execution with short circuit error"] = functio
 }
 
 module.exports["prerequisite instance task execution"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooks: new Task('getGenre.findBooksByAuthor', 'getAuthor').requires('assertGenreExistence'),
+  }).execute({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  });
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooks = new Flow.Task('getGenre.findBooksByAuthor', 'getAuthor').requires('assertGenreExistence');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -181,15 +181,15 @@ module.exports["prerequisite instance task execution"] = function(test){
 }
 
 module.exports["prerequisite instance task execution with short circuit error"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooks: new Task('getGenre.findBooksByAuthor', 'getAuthor').requires('assertGenreExistence'),
+  }).execute({
     authorName: 'Dan Brown',
     genreName: 'Yourmom'
-  });
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooks = new Flow.Task('getGenre.findBooksByAuthor', 'getAuthor').requires('assertGenreExistence');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(err);
     test.equals(err.message, "Genre did not exist");
     test.deepEqual(results, {
@@ -204,7 +204,9 @@ module.exports["prerequisite instance task execution with short circuit error"] 
 }
 
 module.exports["multiple instance parameter"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getGenre: new Task(Genre.getById, 'page.chapter.book.genreId'),
+  }).execute({
     page: {
       number: 1,
       chapter: {
@@ -212,16 +214,16 @@ module.exports["multiple instance parameter"] = function(test){
         book: Book.all[5]
       }
     }
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getById, 'page.chapter.book.genreId');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.deepEqual(results.getGenre, Genre.all[4]);
     test.done();
   });
 }
 
 module.exports["result multi instance function"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task('page.chapter.book.getAuthor'),
+  }).execute({
     page: {
       number: 1,
       chapter: {
@@ -229,23 +231,21 @@ module.exports["result multi instance function"] = function(test){
         book: Book.all[5]
       }
     }
-  });
-  flow.tasks.getAuthor = new Flow.Task('page.chapter.book.getAuthor');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.deepEqual(results.getAuthor, Author.all[3]);
     test.done();
   });
 }
 
 module.exports["instance task execution with result instance parameter"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooks: new Task('getGenre.findBooksByAuthor', 'getAuthor.id'),
+  }).execute({
     authorName: 'Dan Brown',
     genreName: 'Fiction'
-  });
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooks = new Flow.Task('getGenre.findBooksByAuthor', 'getAuthor.id');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       authorName: 'Dan Brown',
@@ -259,19 +259,19 @@ module.exports["instance task execution with result instance parameter"] = funct
 }
 
 module.exports["multiple asyncronus tasks with prerequisite task execution"] = function(test){
-  var flow = new Flow( [
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooks: new Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor').requires('assertGenreExistence'),
+  }).execute([
     { authorName: 'Dan Brown',
       genreName: 'Fiction'
     },
     { authorName: 'Patricia Briggs',
       genreName: 'Fantasy'
     }
-  ]);
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooks = new Flow.Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor').requires('assertGenreExistence');
-  flow.execute(function(err, results){
+  ], function(err, results){
     test.ok(!err);
     test.deepEqual(results, [
       { authorName: 'Dan Brown',
@@ -292,19 +292,19 @@ module.exports["multiple asyncronus tasks with prerequisite task execution"] = f
 }
 
 module.exports["multiple asyncronus tasks with prerequisite task execution (error)"] = function(test){
-  var flow = new Flow([
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooks: new Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor').requires('assertGenreExistence'),
+  }).execute([
       { authorName: 'Dan Brown',
         genreName: 'Fiction'
       },
       { authorName: 'Patricia Briggs',
         genreName: 'Robot Romance Novels'
       }
-  ]);
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooks = new Flow.Task(Book.findByGenreAndAuthor, 'getGenre', 'getAuthor').requires('assertGenreExistence');
-  flow.execute(function(err, results){
+  ], function(err, results){
     test.ok(err);
     test.equal(results[0], undefined);
     test.deepEqual(results[1], { 
@@ -319,19 +319,19 @@ module.exports["multiple asyncronus tasks with prerequisite task execution (erro
 }
 
 module.exports["multiple asyncronus tasks with prerequisite instance task execution"] = function(test){
-  var flow = new Flow([
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooks: new Task('getGenre.findBooksByAuthor', 'getAuthor').requires('assertGenreExistence'),
+  }).execute([
     { authorName: 'Dan Brown',
       genreName: 'Fiction'
     },
     { authorName: 'Patricia Briggs',
       genreName: 'Fantasy'
     }
-  ]);
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooks = new Flow.Task('getGenre.findBooksByAuthor', 'getAuthor').requires('assertGenreExistence');
-  flow.execute(function(err, results){
+  ], function(err, results){
     test.ok(!err);
     test.deepEqual(results, [
       { authorName: 'Dan Brown',
@@ -352,19 +352,19 @@ module.exports["multiple asyncronus tasks with prerequisite instance task execut
 }
 
 module.exports["multiple asyncronus tasks with prerequisite instance task execution (error)"] = function(test){
-  var flow = new Flow([
+  new Flow({
+    getAuthor: new Task(Author.getByName, 'authorName'),
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooks: new Task('getGenre.findBooksByAuthor', 'getAuthor').requires('assertGenreExistence'),
+  }).execute([
     { authorName: 'Dan Brown',
       genreName: 'Fiction'
     },
     { authorName: 'Patricia Briggs',
       genreName: 'Robot Romance Novels'
     }
-  ]);
-  flow.tasks.getAuthor = new Flow.Task(Author.getByName, 'authorName');
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooks = new Flow.Task('getGenre.findBooksByAuthor', 'getAuthor').requires('assertGenreExistence');
-  flow.execute(function(err, results){
+  ], function(err, results){
     test.ok(err);
     test.equal(results[0], undefined);
     test.deepEqual(results[1], { 
@@ -379,12 +379,12 @@ module.exports["multiple asyncronus tasks with prerequisite instance task execut
 }
 
 module.exports["task name same as instance method"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooks: new Task('getGenre.getBooks'),
+  }).execute({
     genreName: 'Fantasy'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooks = new Flow.Task('getGenre.getBooks');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err);
     test.deepEqual(results, {
       genreName: 'Fantasy',
@@ -396,12 +396,12 @@ module.exports["task name same as instance method"] = function(test){
 }
 
 module.exports["undefined instance error"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooks: new Task('getGenre.getBooks'),
+  }).execute({
     genreName: 'Fictiony'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooks = new Flow.Task('getGenre.getBooks');
-  flow.execute(function(e, results){
+  }, function(e, results){
     test.ok(e, 'got an error'); 
     test.equals(e.name, "ArgumentNullError", "got proper error");
     test.equals(e.message, 'Not Found: "getGenre" with genreName "Fictiony"')
@@ -410,12 +410,12 @@ module.exports["undefined instance error"] = function(test){
 }
 
 module.exports["undefined instance error 2"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooks: new Task(Book.findByGenreId, 'getGenre.id.undef_value.err'),
+  }).execute({
     genreName: 'Fiction'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooks = new Flow.Task(Book.findByGenreId, 'getGenre.id.undef_value.err');
-  flow.execute(function(e, results){
+  }, function(e, results){
     test.ok(e, 'got an error'); 
     test.equals(e.name, "ArgumentNullError", "got proper error");
     test.equals(e.message, 'Not Found: "id.undef_value" with genreName "Fiction"')
@@ -425,11 +425,11 @@ module.exports["undefined instance error 2"] = function(test){
 
 module.exports["function as arg error"] = function(test){
   try {
-    var flow = new Flow({
+    new Flow({
+      getBook: new Task(Book.getById, Book.getById, 'bookId'),
+  }).execute({
       bookId: 1
-    });
-    flow.tasks.getBook = new Flow.Task(Book.getById, Book.getById, 'bookId');
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
@@ -442,12 +442,12 @@ module.exports["function as arg error"] = function(test){
 }
 
 module.exports["unknown symbol error"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getBook: new Task(Book.getById, 'bookId'),
+    getAuthor: new Task('getBook.notafunction'),
+  }).execute({
     bookId: 1
-  });
-  flow.tasks.getBook = new Flow.Task(Book.getById, 'bookId');
-  flow.tasks.getAuthor = new Flow.Task('getBook.notafunction');
-  flow.execute(function(e, results){
+  }, function(e, results){
     test.ok(e, 'got an error'); 
     test.equals(e.name, "FlowTaskError", "got FlowTaskError");
     test.equals(e.message, "Flow error in 'getAuthor': Unknown symbol 'notafunction' must be either the name of a task, the name of data, or the name of a function on 'getBook'", "error message match")
@@ -457,12 +457,12 @@ module.exports["unknown symbol error"] = function(test){
 
 module.exports["unknown symbol for first task argument"] = function(test){
   try {
-    var flow = new Flow({
+    new Flow({
+      getBook: new Task(Book.getById, 'bookId'),
+      getAuthor: new Task('notafunction'),
+  }).execute({
       bookId: 1
-    });
-    flow.tasks.getBook = new Flow.Task(Book.getById, 'bookId');
-    flow.tasks.getAuthor = new Flow.Task('notafunction');
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
@@ -476,12 +476,12 @@ module.exports["unknown symbol for first task argument"] = function(test){
 
 module.exports["undefined task argument error"] = function(test){
   try {
-    var flow = new Flow({
+    new Flow({
+      getBook: new Task(Book.getById, 'bookId'),
+      getAuthor: new Task(Book.getAuthorByBookId, 'getBook'),
+  }).execute({
       bookId: 1
-    });
-    flow.tasks.getBook = new Flow.Task(Book.getById, 'bookId');
-    flow.tasks.getAuthor = new Flow.Task(Book.getAuthorByBookId, 'getBook');
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
@@ -495,12 +495,12 @@ module.exports["undefined task argument error"] = function(test){
 
 module.exports["missing task args error"] = function(test){
   try {
-    var flow = new Flow({
+    new Flow({
+      getBook: new Task(Book.getById, 'bookId'),
+      getAuthor: new Task(),
+  }).execute({
       bookId: 1
-    });
-    flow.tasks.getBook = new Flow.Task(Book.getById, 'bookId');
-    flow.tasks.getAuthor = new Flow.Task();
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
@@ -513,12 +513,12 @@ module.exports["missing task args error"] = function(test){
 }
 
 module.exports["missing function in task args error"] = function(test){
-    var flow = new Flow({
+    new Flow({
+      getBook: new Task(Book.getById, 'bookId'),
+      getAuthor: new Task('getBook'),
+  }).execute({
       bookId: 1
-    });
-    flow.tasks.getBook = new Flow.Task(Book.getById, 'bookId');
-    flow.tasks.getAuthor = new Flow.Task('getBook');
-    flow.execute(function(e, results){
+    }, function(e, results){
       test.ok(e, 'got an error'); 
       test.equals(e.name, "FlowTaskError", "got FlowTaskError");
       test.equals(e.message, "Flow error in 'getAuthor': Not a function: getBook", "error message match")
@@ -528,12 +528,12 @@ module.exports["missing function in task args error"] = function(test){
 
 module.exports["invalid flow type task"] = function(test){
   try {
-    var flow = new Flow({
+    new Flow({
+      getBook: new Task(Book.getById, 'bookId'),
+      getAuthor: new Task(3),
+  }).execute({
       bookId: 1
-    });
-    flow.tasks.getBook = new Flow.Task(Book.getById, 'bookId');
-    flow.tasks.getAuthor = new Flow.Task(3);
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
@@ -547,12 +547,12 @@ module.exports["invalid flow type task"] = function(test){
 
 module.exports["error in task function"] = function(test){
   try {
-    var flow = new Flow({
+    new Flow({
+      getBook: new Task(Book.getById, 'bookId'),
+      getAuthor: new Task(Author.getById),
+  }).execute({
       bookId: 1
-    });
-    flow.tasks.getBook = new Flow.Task(Book.getById, 'bookId');
-    flow.tasks.getAuthor = new Flow.Task(Author.getById);
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
@@ -566,14 +566,15 @@ module.exports["error in task function"] = function(test){
 }
 
 module.exports["subFlow execution"] = function(test){
-  var flow = new Flow({ 
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Task('getGenre.getBooks'),
+    getAuthors: new Flow('getBooksByGenre', {
+      getBookAuthor: new Task('getBooksByGenre.getAuthor')
+    })
+  }).execute({ 
     genreName: 'Fantasy'
-  }), subflow;
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-  flow.tasks.getAuthors = subflow = new Flow('getBooksByGenre');
-    subflow.tasks.getBookAuthor = new Flow.Task('getBooksByGenre.getAuthor');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
@@ -596,14 +597,15 @@ module.exports["subFlow execution"] = function(test){
 }
 
 module.exports["subFlow execution with context"] = function(test){
-  var flow = new Flow({ 
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Task('getGenre.getBooks'),
+    getAuthors: new Flow('getBooksByGenre', {
+      getBookAuthor: new Task(Author.getById, 'authorId')
+    })
+  }).execute({ 
     genreName: 'Fantasy'
-  }), subflow;
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-  flow.tasks.getAuthors = subflow = new Flow('getBooksByGenre');
-    subflow.tasks.getBookAuthor = new Flow.Task(Author.getById, 'authorId');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
@@ -626,14 +628,15 @@ module.exports["subFlow execution with context"] = function(test){
 }
 
 module.exports["subFlow execution using subFlow"] = function(test){
-  var flow = new Flow({ 
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Task('getGenre.getBooks'),
+    getAuthors: new Flow('getBooksByGenre', {
+      getBookAuthor: new Task('getBooksByGenre.getAuthor')
+    })
+  }).execute({ 
     genreName: 'Fantasy'
-  }), subflow;
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-  flow.tasks.getAuthors = subflow = new Flow('getBooksByGenre');
-    subflow.tasks.getBookAuthor = new Flow.Task('getBooksByGenre.getAuthor');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
@@ -656,16 +659,17 @@ module.exports["subFlow execution using subFlow"] = function(test){
 }
 
 module.exports["subFlow execution with prereqs"] = function(test){
-  var flow = new Flow({ 
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Task('getGenre.getBooks'),
+    getAuthors: new Flow('getBooksByGenre', {
+      getHambly2: new Task(Author.getById, 'getHambly')
+    }),
+    getHambly: new Task(Author.getByName, 'authorName')
+  }).execute({ 
     genreName: 'Fantasy',
     authorName: 'Barbara Hambly'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-  var subflow = flow.tasks.getAuthors = new Flow('getBooksByGenre');
-    subflow.tasks.getHambly2 = new Flow.Task(Author.getById, 'getHambly');
-  flow.tasks.getHambly = new Flow.Task(Author.getByName, 'authorName');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
@@ -694,19 +698,55 @@ getAuthors: *getBooksByGenre, t.getBookAuthor, t.getBooksByAuthor, getHambly
 
 */
 module.exports["two nested subflows with prereqs"] = function(test){
-  var flow = new Flow({ 
+  // new Flow({ 
+  //   genreName: 'Fantasy',
+  //   authorName: 'Barbara Hambly'
+  // });
+  // flow.tasks.getGenre = new Task(Genre.getByName, 'genreName');
+  // flow.tasks.getBooksByGenre = new Task('getGenre.getBooks');
+  // var subflow = flow.tasks.getAuthors = new Flow('getBooksByGenre');
+  //   subflow.tasks.getBookAuthor = new Task('getBooksByGenre.getAuthor');
+  //   subflow.tasks.getBooksByAuthor = new Task(Book.findByAuthorId, 'getBookAuthor');
+  //   var subflow2 = subflow.tasks.getManyHamblies = new Flow('getBooksByAuthor');
+  //     subflow2.tasks.getHambly2 = new Task(Author.getById, 'getHambly');
+  // flow.tasks.getHambly = new Task(Author.getByName, 'authorName');
+
+  // new Flow();
+  // flow.tasks = {
+  //   getGenre: new Task(Genre.getByName, flow.data.genreName),
+  //   getBooksByGenre: new Task(flow.tasks.getGenre.getBooks),
+  //   getAuthors: new Flow(flow.tasks.getBooksByGenre, {
+  //     getBookAuthor: flow.data.getAuthor,
+  //     getBooksByAuthor: new Task(Book.findByAuthorId, flow.tasks.getBookAuthor),
+  //     getManyHamblies: new Flow(flow.tasks.getBooksByAuthor, {
+  //       getHambly2: new Task(Author.getById, flow.tasks.getHambly)
+  //     })
+  //   }),
+  //   getHambly: new Task(Author.getByName, flow.data.authorName)
+  // });
+  // flow.execute({ 
+  //   genreName: 'Fantasy',
+  //   authorName: 'Barbara Hambly'
+  // }, function(err, results){
+
+  // });
+
+
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Task('getGenre.getBooks'),
+    getAuthors: new Flow('getBooksByGenre', {
+      getBookAuthor: new Task('getAuthor'),
+      getBooksByAuthor: new Task(Book.findByAuthorId, 'getBookAuthor'),
+      getManyHamblies: new Flow('getBooksByAuthor', {
+        getHambly2: new Task(Author.getById, 'getHambly')
+      })
+    }),
+    getHambly: new Task(Author.getByName, 'authorName')
+  }).execute({ 
     genreName: 'Fantasy',
     authorName: 'Barbara Hambly'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-  var subflow = flow.tasks.getAuthors = new Flow('getBooksByGenre');
-    subflow.tasks.getBookAuthor = new Flow.Task('getBooksByGenre.getAuthor');
-    subflow.tasks.getBooksByAuthor = new Flow.Task(Book.findByAuthorId, 'getBookAuthor');
-    var subflow2 = subflow.tasks.getManyHamblies = new Flow('getBooksByAuthor');
-      subflow2.tasks.getHambly2 = new Flow.Task(Author.getById, 'getHambly');
-  flow.tasks.getHambly = new Flow.Task(Author.getByName, 'authorName');    
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
@@ -767,16 +807,17 @@ module.exports["two nested subflows with prereqs"] = function(test){
 }
 
 module.exports["subflow with prereqs and result instance parameter"] = function(test){
-  var flow = new Flow({ 
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Task('getGenre.getBooks'),
+    getAuthors: new Flow('getBooksByGenre', {
+      getHambly2: new Task(Author.getById, 'getHambly.id')
+    }),
+    getHambly: new Task(Author.getByName, 'authorName'),
+  }).execute({ 
     genreName: 'Fantasy',
     authorName: 'Barbara Hambly'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-  var subflow = flow.tasks.getAuthors = new Flow('getBooksByGenre');
-    subflow.tasks.getHambly2 = new Flow.Task(Author.getById, 'getHambly.id');
-  flow.tasks.getHambly = new Flow.Task(Author.getByName, 'authorName');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
@@ -802,34 +843,35 @@ module.exports["subflow with prereqs and result instance parameter"] = function(
 
 module.exports["subflow with empty name"] = function(test){
   try {
-    var flow = new Flow({ 
+    new Flow({
+      getGenre: new Task(Genre.getByName, 'genreName'),
+      getBooksByGenre: new Task('getGenre.getBooks'),
+        getAuthors: new Flow('', {
+        getBookAuthor: new Task('getBooksByGenre.getAuthor')
+      })
+    }).execute({ 
       genreName: 'Fantasy'
-    });
-    flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-    flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-    var subflow = flow.tasks.getAuthors = new Flow('');
-      subflow.tasks.getBookAuthor = new Flow.Task('getBooksByGenre.getAuthor');
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
   } catch(e) {
     test.ok(e, 'got an error'); 
     test.equals(e.name, "ArgumentNullError", "got ArgumentNullError");
-    test.equals(e.message, "Missing argument: data", "error message match")
+    test.equals(e.message, "Missing argument: context_name", "error message match")
     test.done();    
   }  
 }
 
 module.exports["subflow with no tasks"] = function(test){
   try {
-    var flow = new Flow({ 
+    new Flow({
+      getGenre: new Task(Genre.getByName, 'genreName'),
+      getBooksByGenre: new Task('getGenre.getBooks'),
+      getAuthors: new Flow('getBooksByGenre')
+    }).execute({ 
       genreName: 'Fantasy'
-    });
-    flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-    flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-    var subflow = flow.tasks.getAuthors = new Flow('getBooksByGenre');
-    flow.execute(function(err, results){
+    }, function(err, results){
       console.log(results);
       test.fail(null, null, "no error received");
       test.done();
@@ -844,14 +886,15 @@ module.exports["subflow with no tasks"] = function(test){
 
 module.exports["subflow with bad data name"] = function(test){
   try {
-    var flow = new Flow({ 
+    new Flow({
+      getGenre: new Task(Genre.getByName, 'genreName'),
+      getBooksByGenre: new Task('getGenre.getBooks'),
+      getAuthors: new Flow('asdf', {
+        getBookAuthor: new Task('getBooksByGenre.getAuthor')
+      })
+    }).execute({ 
       genreName: 'Fantasy'
-    });
-    flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-    flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-    var subflow = flow.tasks.getAuthors = new Flow('asdf');
-      subflow.tasks.getBookAuthor = new Flow.Task('getBooksByGenre.getAuthor');
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
@@ -866,14 +909,15 @@ module.exports["subflow with bad data name"] = function(test){
 
 module.exports["subflow task with own data name"] = function(test){
   try {
-    var flow = new Flow({ 
+    new Flow({
+      getGenre: new Task(Genre.getByName, 'genreName'),
+      getBooksByGenre: new Task('getGenre.getBooks'),
+      getAuthors: new Flow('getAuthors', {
+        getBookAuthor: new Task('getBooksByGenre.getAuthor')
+      })
+    }).execute({ 
       genreName: 'Fantasy'
-    });
-    flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-    flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-    var subflow = flow.tasks.getAuthors = new Flow('getAuthors');
-      subflow.tasks.getBookAuthor = new Flow.Task('getBooksByGenre.getAuthor');
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });
@@ -886,17 +930,19 @@ module.exports["subflow task with own data name"] = function(test){
 }
 
 module.exports["subflow with explicit prereq"] = function(test){
-  var flow = new Flow({ 
-    genreName: 'Fantasy'
+  var flow = new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+    getBooksByGenre: new Task('getGenre.getBooks'),
+    getAuthors: new Flow('getBooksByGenre', {
+      getBookAuthor: new Task(Author.getById, 'authorId')
+    }).requires('assertGenreExistence')
   });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-  flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-  var subflow = flow.tasks.getAuthors = new Flow('getBooksByGenre').requires('assertGenreExistence');
-    subflow.tasks.getBookAuthor = new Flow.Task(Author.getById, 'authorId');
-  flow.execute(function(err, results){
+  flow.execute({ 
+    genreName: 'Fantasy'
+  }, function(err, results){
     test.ok(!err, 'no error');
-    test.deepEqual(subflow._plan.auto_task.slice(0, subflow._plan.auto_task.length - 1), ['getBooksByGenre', 'assertGenreExistence'])
+    test.deepEqual(flow.flows.getAuthors._plan.auto_task.slice(0, flow.flows.getAuthors._plan.auto_task.length - 1), ['getBooksByGenre', 'assertGenreExistence'])
     test.deepEqual(results, { 
       genreName: 'Fantasy',
       assertGenreExistence: true,
@@ -920,15 +966,16 @@ module.exports["subflow with explicit prereq"] = function(test){
 
 module.exports["subflow in task array with bad data name"] = function(test){
   try {
-    var flow = new Flow({ 
+    new Flow({
+      getGenre: new Task(Genre.getByName, 'genreName'),
+      assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+      getBooksByGenre: new Task('getGenre.getBooks'),
+      getAuthors: new Flow('asdf', {
+        getBookAuthor: new Task(Author.getById, 'authorId')
+      }).requires('assertGenreExistence')
+    }).execute({ 
       genreName: 'Fantasy'
-    });
-    flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-    flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-    flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-    var subflow = flow.tasks.getAuthors = new Flow('asdf').requires('assertGenreExistence');
-      subflow.tasks.getBookAuthor = new Flow.Task(Author.getById, 'authorId');
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });  
@@ -942,15 +989,16 @@ module.exports["subflow in task array with bad data name"] = function(test){
 
 module.exports["subflow in task array with own data name"] = function(test){
   try {
-    var flow = new Flow({ 
+    new Flow({
+      getGenre: new Task(Genre.getByName, 'genreName'),
+      assertGenreExistence: new Task(Genre.assertExistence, 'getGenre'),
+      getBooksByGenre: new Task('getGenre.getBooks'),
+      getAuthors: new Flow('getAuthors', {
+        getBookAuthor: new Task(Author.getById, 'authorId')
+      }).requires('assertGenreExistence')
+    }).execute({ 
       genreName: 'Fantasy'
-    })
-    flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-    flow.tasks.assertGenreExistence = new Flow.Task(Genre.assertExistence, 'getGenre');
-    flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-    var subflow = flow.tasks.getAuthors = new Flow('getAuthors').requires('assertGenreExistence');
-      subflow.tasks.getBookAuthor = new Flow.Task(Author.getById, 'authorId');
-    flow.execute(function(err, results){
+    }, function(err, results){
       test.fail(null, null, "no error received");
       test.done();
     });  
@@ -963,13 +1011,14 @@ module.exports["subflow in task array with own data name"] = function(test){
 }
 
 module.exports["single data subflow execution"] = function(test){
-  var flow = new Flow({ 
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Flow('getGenre', {
+      getBooksByGenre: new Task(Book.findByGenreId, 'id')
+    })
+  }).execute({ 
     genreName: 'Fantasy'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  var subflow = flow.tasks.getBooksByGenre = new Flow('getGenre');
-    subflow.tasks.getBooksByGenre = new Flow.Task(Book.findByGenreId, 'id');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
@@ -983,13 +1032,14 @@ module.exports["single data subflow execution"] = function(test){
 }
 
 module.exports["single null data subflow execution"] = function(test){
-  var flow = new Flow({ 
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Flow('getGenre', {      
+      getBooksByGenre2: new Task(Book.findByGenreId, 'id')
+    })
+  }).execute({ 
     genreName: 'Chainsaw slashers'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  var subflow = flow.tasks.getBooksByGenre = new Flow('getGenre');
-    subflow.tasks.getBooksByGenre2 = new Flow.Task(Book.findByGenreId, 'id');
-  flow.execute(function(e, results){
+  }, function(e, results){
     test.ok(e, 'got an error'); 
     test.equals(e.name, "FlowTaskError", "got Error");
     test.equals(e.message, "Flow error in 'getBooksByGenre': Result of 'getGenre' returned no data. Could not start SubFlow.", "error message match")
@@ -998,14 +1048,15 @@ module.exports["single null data subflow execution"] = function(test){
 }
 
 module.exports["subflow with result instance parameter"] = function(test){
-  var flow = new Flow({ 
+  new Flow({
+    getGenre: new Task(Genre.getByName, 'genreName'),
+    getBooksByGenre: new Task('getGenre.getBooks'),
+    getAuthors: new Flow('getBooksByGenre', {
+      getBookAuthor: new Task(Author.getById, 'getBooksByGenre.authorId')
+    })
+  }).execute({ 
     genreName: 'Fantasy'
-  });
-  flow.tasks.getGenre = new Flow.Task(Genre.getByName, 'genreName');
-  flow.tasks.getBooksByGenre = new Flow.Task('getGenre.getBooks');
-  var subflow = flow.tasks.getAuthors = new Flow('getBooksByGenre');
-    subflow.tasks.getBookAuthor = new Flow.Task(Author.getById, 'getBooksByGenre.authorId');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results, { 
       genreName: 'Fantasy',
@@ -1028,14 +1079,14 @@ module.exports["subflow with result instance parameter"] = function(test){
 }
 
 module.exports["synchronous task execution"] = function(test){
-  var flow = new Flow({
+  new Flow({
+    getBook: new Task(Book.getById, 'id'),
+    getAuthor: new Task(Author.getById, 'getBook.authorId'),
+    getBookAuthorData: new Fn(us.extend, 'new_object', 'getBook', 'getAuthor')
+  }).execute({
     id: 3,
     new_object: {}
-  });
-  flow.tasks.getBook = new Flow.Task(Book.getById, 'id');
-  flow.tasks.getAuthor = new Flow.Task(Author.getById, 'getBook.authorId');
-  var t = flow.tasks.getBookAuthorData = new Flow.Fn(us.extend, 'new_object', 'getBook', 'getAuthor');
-  flow.execute(function(err, results){
+  }, function(err, results){
     test.deepEqual({
       id: 3,
       new_object: us.extend({}, Book.all[3], Author.all[1]),
