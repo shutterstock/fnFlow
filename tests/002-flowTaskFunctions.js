@@ -15,6 +15,30 @@ module.exports.tearDown = function(cb){
   cb();
 }
 
+module.exports["flow task defaults"] = function(test){
+  new Flow({
+    book: new Task(Book.getById, 'bookId').defaultTo("none")
+  }).execute({
+    bookId: 100
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results.book, 'none');
+    test.done();
+  });  
+}
+
+module.exports["flow task no defaults"] = function(test){
+  new Flow({
+    book: new Task(Book.getById, 'bookId').defaultTo("none")
+  }).execute({
+    bookId: 1
+  }, function(err, results){
+    test.ok(!err, 'no error');
+    test.deepEqual(results.book, Book.all[1]);
+    test.done();
+  });  
+}
+
 module.exports["flow task assert exists"] = function(test){
   new Flow({
     book: new Task(Book.getById, 'bookId').assertExists()
