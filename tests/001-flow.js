@@ -546,23 +546,33 @@ module.exports["invalid flow type task"] = function(test){
 }
 
 module.exports["error in task function"] = function(test){
-  try {
-    new Flow({
-      getBook: new Task(Book.getById, 'bookId'),
-      getAuthor: new Task(Author.getById),
+  new Flow({
+    getBook: new Task(Book.getById, 'bookId'),
+    getAuthor: new Task(Author.getById),
   }).execute({
-      bookId: 1
-    }, function(err, results){
-      test.fail(null, null, "no error received");
-      test.done();
-    });
-  } catch(e) {
-    test.ok(e, 'got an error'); 
-    test.equals(e.name, "FlowTaskError", "got FlowTaskError");
-    test.equals(e.message, "Flow error in 'getAuthor': Error during execution of function.", "error message match")
-    test.ok(/TypeError: undefined is not a function/.test(e.stack))
+    bookId: 1
+  }, function(err, results){
+    test.ok(err, 'got an error'); 
+    test.equals(err.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(err.message, "Flow error in 'getAuthor': Error during execution of function.", "error message match")
+    test.ok(/TypeError: undefined is not a function/.test(err.stack))
     test.done();
-  }
+  });
+}
+
+module.exports["error in synchronous task function"] = function(test){
+  new Flow({
+    getBook: new Task(Book.getById, 'bookId'),
+    getAuthor: new Fn(Author.getById),
+  }).execute({
+    bookId: 1
+  }, function(err, results){
+    test.ok(err, 'got an error'); 
+    test.equals(err.name, "FlowTaskError", "got FlowTaskError");
+    test.equals(err.message, "Flow error in 'getAuthor': Error during execution of function.", "error message match")
+    test.ok(/TypeError: undefined is not a function/.test(err.stack))
+    test.done();
+  });
 }
 
 module.exports["subFlow execution"] = function(test){
