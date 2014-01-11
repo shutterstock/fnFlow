@@ -113,18 +113,18 @@ Constructor function. Represents an asynchronous function whose final argument i
 * fn_or_string - An actual function object, or a string that describes a function that is an attribute of another task result.
 * string_args - Each one represents an argument value to pass to the fn_or_string. Each string must stem from a piece of given to the Flow.prototype.execute function, or a task name.
 
-### task.defaultTo(value)
+### task.defaultTo(task_name)
 
-Default the result of a task to a specified value if it did not yield one (undefined or null).
+Default the result of a task to the result of a task or data if it did not yield one (undefined or null).
 
 __Example__
 ```js
 var flow = new Flow({
   book: new Task(Book.findByTitle, 'title'),
-  author_name: new Task(Author.getNameById, 'book.author_id').defaultTo('unknown')
+  author_name: new Task(Author.getNameById, 'book.author_id').defaultTo('unknown_title')
 });
 
-flow.execute({ title: 'Beowulf' }, function(err, results){
+flow.execute({ title: 'Beowulf', unknown_title: 'unknown' }, function(err, results){
   if(err) return console.error(err); 
   console.log(results.author_name + " wrote " + results.title); //prints "unknown wrote Beowulf"
 });
