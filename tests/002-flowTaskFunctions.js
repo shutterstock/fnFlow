@@ -17,9 +17,10 @@ module.exports.tearDown = function(cb){
 
 module.exports["flow task defaults"] = function(test){
   new Flow({
-    book: new Task(Book.getById, 'bookId').defaultTo("none")
+    book: new Task(Book.getById, 'bookId').defaultTo("default_book")
   }).execute({
-    bookId: 100
+    bookId: 100,
+    default_book: 'none'
   }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results.book, 'none');
@@ -29,9 +30,10 @@ module.exports["flow task defaults"] = function(test){
 
 module.exports["flow task no defaults"] = function(test){
   new Flow({
-    book: new Task(Book.getById, 'bookId').defaultTo("none")
+    book: new Task(Book.getById, 'bookId').defaultTo("default_book")
   }).execute({
-    bookId: 1
+    bookId: 1,
+    default_book: 'none'    
   }, function(err, results){
     test.ok(!err, 'no error');
     test.deepEqual(results.book, Book.all[1]);
