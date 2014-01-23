@@ -418,7 +418,7 @@ module.exports["undefined instance error 2"] = function(test){
   }, function(e, results){
     test.ok(e, 'got an error'); 
     test.equals(e.name, "ArgumentNullError", "got proper error");
-    test.equals(e.message, 'Not Found: "id.undef_value" with genreName "Fiction"')
+    test.equals(e.message, 'Not Found During Flow: "getGenre.id.undef_value" with genreName "Fiction"')
     test.done();
   });
 }
