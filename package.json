@@ -3,19 +3,19 @@
   "description": "Pronounced \"effin' flow\" because it's so badass, fnFlow is a Javascript control flow library heavily influenced by Caolan McMahon's async that encourages a proper functional design pattern.",
   "main": "./lib/fnFlow",
   "author": "David Fenster <david@dfenster.com>",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/shutterstock/fnFlow.git"
   },
   "license": "MIT",
-  "dependencies" : {
+  "dependencies": {
     "common-errors": "0.1.1",
-    "async":  "0.2.6",
+    "async": "0.2.6",
     "underscore": "1.4.4"
   },
   "devDependencies": {
-    "nodeunit":  ">0.0.0"
+    "nodeunit": ">0.0.0"
   },
   "keywords": [
     "control flow",
