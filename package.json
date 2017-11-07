@@ -35,5 +35,11 @@
   },
   "scripts": {
     "test": "nodeunit tests"
-  }
+  },
+  "homepage": "https://github.com/shutterstock/fnFlow",
+  "bugs": "https://github.com/shutterstock/fnFlow/issues",
+  "contributors": [
+    "David Fenster <david@dfenster.com>",
+    "Ben Kovacevich <bkovacevich@shutterstock.com"
+  ]
 }

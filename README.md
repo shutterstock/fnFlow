@@ -5,7 +5,13 @@ Pronounced "effin' flow" because it's so badass, fnflow is a Javascript control 
 
 For a complicated series of both asynchronous and synchronous tasks, using the Flow class makes adding new tasks much easier and makes the code more readable.  It also encourages  you to define functions in places where they can be reused more easily. This makes it an excellent choice for design patterns like MVC where it is a goal to strive for "fat model, skinny controller."
 
-__Basic Usage__
+## Install
+
+```sh
+npm install fnflow
+```
+
+## Usage
 
 ```javascript
 var Flow = require('fnflow').Flow, Task = Flow.Task;
@@ -106,7 +112,7 @@ flow.execute({ author_name: 'Brandon Sanderson' }, function(err, results) {
 * For each book, asynchronously in parallel, get the total number of pages and words at the same time.
 
 
-## Task(fn_or_string, [*string_args])
+## Task(`fn_or_string, [*string_args]`)
 
 Constructor function. Represents an asynchronous function whose final argument is a callback function(err, value).
 
@@ -187,17 +193,14 @@ flow.execute({ author_name: 'Brandon Sanderson' }, function(err, results){
 * Get the author asynchronously by name. If no author is found, exit with an error.
 * If an author was found, asynchronously retrieve the books written by the author.
 
-
-
 ## Authors
 
 This library was developed by [David Fenster](https://github.com/dfenster) with major contributions from [Ben Kovacevich](https://github.com/bkovacevich) at [Shutterstock](http://www.shutterstock.com)
 
+## Contribute
+
+Please do! Check out our [Contributing guidelines](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE) © 2013-2017 Shutterstock Images, LLC
-
-
-
-
+[MIT](LICENSE) © 2013-2017 Shutterstock Images, Inc.
