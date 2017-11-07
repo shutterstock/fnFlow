@@ -4,6 +4,7 @@ Please contribute! Here are some things that would be great:
 - [Open an issue!](https://github.com/shutterstock/fnFlow/issues/new)
 - Open a pull request!
 - Say hi! :wave:
+- Run `npm test` before submitting PRs.
 
 Please abide by the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
 
