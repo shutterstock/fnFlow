@@ -196,8 +196,4 @@ This library was developed by [David Fenster](https://github.com/dfenster) with 
 
 ## License
 
-[MIT](LICENSE) © 2013-2017 Shutterstock Images, LLC
-
-
-
-
+[MIT](LICENSE) © 2013-2017 Shutterstock Images, Inc.
