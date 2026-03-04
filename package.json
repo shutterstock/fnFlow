@@ -12,7 +12,7 @@
   "dependencies": {
     "common-errors": "0.1.1",
     "async": "0.2.6",
-    "underscore": "1.4.4"
+    "underscore": "1.13.8"
   },
   "devDependencies": {
     "nodeunit": ">0.0.0"
